@@ -103,6 +103,7 @@ def render_cleaning_report_card(report: CleaningReport):
             breakdown_data = [
                 {"Reason for Removal": "Missing / Guest Customer ID", "Rows Filtered": report.rows_removed_missing_customer, "Why": "Guest checkouts without an account cannot be tracked across orders"},
                 {"Reason for Removal": "Cancelled Orders (Invoice starts with 'C')", "Rows Filtered": report.rows_removed_cancelled, "Why": "Cancelled orders do not represent completed purchases"},
+                {"Reason for Removal": "Missing / Blank Invoice Number", "Rows Filtered": report.rows_removed_missing_invoice, "Why": "Transactions without an invoice identifier cannot be attributed to an order"},
                 {"Reason for Removal": "Non-Positive Quantity (≤ 0)", "Rows Filtered": report.rows_removed_non_positive_qty, "Why": "Returns, adjustments, or corrupted counts"},
                 {"Reason for Removal": "Non-Positive Price (≤ 0)", "Rows Filtered": report.rows_removed_non_positive_price, "Why": "Free samples, giveaways, or zero-price test transactions"},
                 {"Reason for Removal": "Invalid / Unparseable Dates", "Rows Filtered": report.rows_removed_invalid_date, "Why": "Cannot determine recency without valid timestamps"},

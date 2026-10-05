@@ -68,6 +68,11 @@ def calculate_rfm(
         raise ValueError("Cannot calculate RFM on an empty DataFrame.")
 
     work_df = df.copy()
+    # Filter out null or blank invoice_no defensively
+    if "invoice_no" in work_df.columns:
+        inv_valid = work_df["invoice_no"].notna() & (~work_df["invoice_no"].astype(str).str.strip().isin(["", "nan", "none", "null"]))
+        work_df = work_df[inv_valid]
+
     # Normalize to tz-naive to prevent subtraction mismatches
     parsed_dates = pd.to_datetime(work_df["invoice_date"])
     if hasattr(parsed_dates.dt, "tz") and parsed_dates.dt.tz is not None:
@@ -112,8 +117,8 @@ def calculate_rfm(
     
     # Recency in days
     rfm["recency"] = (snap_dt - last_dates).dt.days.values
-    # Frequency (count of unique invoices)
-    rfm["frequency"] = grouped[("invoice_no", "nunique")].values.astype(int)
+    # Frequency (count of unique invoices, minimum 1)
+    rfm["frequency"] = np.maximum(1, grouped[("invoice_no", "nunique")].values.astype(int))
     # Monetary (sum of line totals)
     rfm["monetary"] = np.round(grouped[("line_total", "sum")].values.astype(float), 2)
     

@@ -19,6 +19,7 @@ class CleaningReport:
     date_max: Optional[str]
     rows_removed_missing_customer: int = 0
     rows_removed_cancelled: int = 0
+    rows_removed_missing_invoice: int = 0
     rows_removed_non_positive_qty: int = 0
     rows_removed_non_positive_price: int = 0
     rows_removed_invalid_date: int = 0
@@ -95,19 +96,29 @@ def clean_transactions(
     rows_missing_customer = int(missing_customer_mask.sum())
     work_df = work_df[~missing_customer_mask].drop(columns=["customer_id_str"])
 
-    # Ensure customer_id is a clean string/identifier (e.g. convert float 12345.0 to "12345")
+    # Ensure customer_id is a clean string/identifier (e.g. convert float 12345.0 or "12345.0" to "12345")
     def _clean_id(val):
-        if isinstance(val, float) and val.is_integer():
-            return str(int(val))
-        return str(val).strip()
+        if val is None or pd.isna(val):
+            return ""
+        s = str(val).strip()
+        try:
+            f = float(s)
+            if f.is_integer():
+                return str(int(f))
+        except (ValueError, OverflowError):
+            pass
+        return s
 
     work_df["customer_id"] = work_df["customer_id"].apply(_clean_id)
 
-    # Step 3: Parse and validate numeric columns (safely handle currency signs, commas, whitespace)
+    # Step 3: Parse and validate numeric columns (safely handle currency signs, commas, accounting parens, whitespace)
     def _to_clean_numeric(series):
         if pd.api.types.is_numeric_dtype(series):
             return pd.to_numeric(series, errors="coerce")
-        cleaned = series.astype(str).str.replace(r"[^\d.-]", "", regex=True)
+        cleaned = series.astype(str).str.strip()
+        # Convert accounting parenthesis format: (10.50) -> -10.50, ($10.50) -> -$10.50
+        cleaned = cleaned.str.replace(r"^\s*\(\s*(.*?)\s*\)\s*$", r"-\1", regex=True)
+        cleaned = cleaned.str.replace(r"[^\d.-]", "", regex=True)
         return pd.to_numeric(cleaned, errors="coerce")
 
     work_df["quantity"] = _to_clean_numeric(work_df["quantity"])
@@ -117,7 +128,15 @@ def clean_transactions(
     work_df["invoice_no_str"] = work_df["invoice_no"].astype(str).str.strip()
     cancelled_mask = work_df["invoice_no_str"].str.upper().str.startswith("C")
     rows_cancelled = int(cancelled_mask.sum())
-    work_df = work_df[~cancelled_mask].drop(columns=["invoice_no_str"])
+    work_df = work_df[~cancelled_mask]
+
+    # Step 4b: Handle null, empty, or placeholder invoice_no
+    missing_invoice_mask = (
+        work_df["invoice_no"].isna()
+        | (work_df["invoice_no_str"].isin(["", "nan", "none", "null"]))
+    )
+    rows_missing_invoice = int(missing_invoice_mask.sum())
+    work_df = work_df[~missing_invoice_mask].drop(columns=["invoice_no_str"])
 
     # Step 5: Remove non-positive quantities (returns/adjustments/zeros)
     non_pos_qty_mask = work_df["quantity"].isna() | (work_df["quantity"] <= 0)
@@ -156,6 +175,7 @@ def clean_transactions(
         date_max=date_max,
         rows_removed_missing_customer=rows_missing_customer,
         rows_removed_cancelled=rows_cancelled,
+        rows_removed_missing_invoice=rows_missing_invoice,
         rows_removed_non_positive_qty=rows_non_pos_qty,
         rows_removed_non_positive_price=rows_non_pos_price,
         rows_removed_invalid_date=rows_invalid_date,
