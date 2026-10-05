@@ -58,12 +58,14 @@ def render_sidebar_filters(
     max_spend = float(labeled_df["monetary"].max())
     
     if min_spend < max_spend:
+        diff = max_spend - min_spend
+        step_val = min(max(0.01, round(diff / 100, 2)), diff)
         spend_range = st.sidebar.slider(
             "Filter by Total Spend ($)",
             min_value=float(min_spend),
             max_value=float(max_spend),
             value=(float(min_spend), float(max_spend)),
-            step=max(1.0, round((max_spend - min_spend) / 100, 2)),
+            step=float(step_val),
             key=f"{key_prefix}_spend_slider",
         )
     else:

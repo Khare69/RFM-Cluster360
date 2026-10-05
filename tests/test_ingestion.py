@@ -78,3 +78,27 @@ def test_validate_mapping():
     assert is_valid is False
     assert "invoice_no" in missing
     assert "quantity" in missing
+
+
+def test_validate_mapping_duplicate_columns():
+    duplicate_map = {
+        "customer_id": "OrderID",
+        "invoice_no": "OrderID",
+        "invoice_date": "date",
+        "quantity": "qty",
+        "unit_price": "price",
+    }
+    is_valid, issues = validate_mapping(duplicate_map)
+    assert is_valid is False
+    assert any("Duplicate column mapping" in issue for issue in issues)
+
+
+def test_load_csv_from_string_io_object():
+    csv_text = "CustomerID,InvoiceNo,InvoiceDate,Quantity,UnitPrice\n1001,536365,2023-01-01,2,10.5\n"
+    string_io = io.StringIO(csv_text)
+    df, err = load_csv(string_io)
+    assert err is None
+    assert df is not None
+    assert len(df) == 1
+    assert "CustomerID" in df.columns
+

@@ -71,6 +71,9 @@ def load_csv(
         else:
             return None, "Unsupported file source type."
 
+        if isinstance(raw_bytes, str):
+            raw_bytes = raw_bytes.encode("utf-8")
+
         if len(raw_bytes) > (max_size_mb * 1024 * 1024):
             return None, f"File exceeds maximum allowed size of {max_size_mb} MB."
 
@@ -186,4 +189,18 @@ def validate_mapping(
     """
     reqs = required_cols if required_cols is not None else REQUIRED_COLUMNS
     missing = [col for col in reqs if not mapping.get(col)]
-    return (len(missing) == 0, missing)
+
+    # Detect duplicate column mappings among non-None actual columns
+    seen_cols: Dict[str, str] = {}
+    duplicates: List[str] = []
+    for canonical, actual in mapping.items():
+        if actual is not None:
+            if actual in seen_cols:
+                duplicates.append(
+                    f"Duplicate column mapping: '{actual}' is mapped to both '{seen_cols[actual]}' and '{canonical}'"
+                )
+            else:
+                seen_cols[actual] = canonical
+
+    issues = missing + duplicates
+    return (len(issues) == 0, issues)

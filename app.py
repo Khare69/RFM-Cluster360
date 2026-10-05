@@ -145,13 +145,20 @@ def main():
         best_k = eval_metrics["best_k"] if eval_metrics else curr_k
         sil_text = f" ({eval_metrics['best_silhouette']:.3f})" if (eval_metrics and "best_silhouette" in eval_metrics) else ""
 
-        new_k = st.sidebar.slider(
-            "Cluster Count (k)",
-            min_value=DEFAULT_K_MIN,
-            max_value=min(DEFAULT_K_MAX, max(DEFAULT_K_MIN, len(st.session_state.rfm_df) - 1)),
-            value=curr_k,
-            help=f"Auto-selected k={best_k} based on highest silhouette score{sil_text}.",
-        )
+        min_k_val = DEFAULT_K_MIN
+        max_k_val = min(DEFAULT_K_MAX, max(DEFAULT_K_MIN, len(st.session_state.rfm_df) - 1))
+
+        if min_k_val < max_k_val:
+            new_k = st.sidebar.slider(
+                "Cluster Count (k)",
+                min_value=min_k_val,
+                max_value=max_k_val,
+                value=min(max(curr_k, min_k_val), max_k_val),
+                help=f"Auto-selected k={best_k} based on highest silhouette score{sil_text}.",
+            )
+        else:
+            new_k = min_k_val
+            st.sidebar.info(f"k is fixed at {min_k_val} for this dataset size")
         if new_k != curr_k:
             if st.sidebar.button("Apply New k", type="primary", use_container_width=True):
                 scaled_data, _, _ = preprocess_rfm(st.session_state.rfm_df)
