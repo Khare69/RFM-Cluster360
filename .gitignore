@@ -43,3 +43,7 @@ htmlcov/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Planning & Specs
+implementation_plan.md
+rfm-project-mvp-spec.md
