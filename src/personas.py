@@ -122,10 +122,25 @@ def classify_cluster(
     return "Needs Attention"
 
 
+ORDERED_PERSONAS: List[str] = [
+    "Champions",
+    "Loyal Customers",
+    "Potential Loyalists",
+    "Promising",
+    "New Customers",
+    "Needs Attention",
+    "About to Sleep",
+    "At Risk",
+    "Lost / Dormant",
+]
+
+
 def generate_cluster_label_mapping(clustered_df: pd.DataFrame) -> Dict[int, str]:
     """
     Generates a deterministic mapping from cluster IDs (0..k-1) to human-readable persona labels.
-    Ensures all assigned segment names are distinct and meaningful.
+    Ranks clusters by a weighted composite score (0.35*R_inverted + 0.35*F + 0.30*M) and assigns
+    distinct labels in order from the predefined persona hierarchy. Adds ordinal qualifiers
+    (e.g., '(Tier 2)') for overflow when k >= 10.
 
     Parameters
     ----------
@@ -150,10 +165,8 @@ def generate_cluster_label_mapping(clustered_df: pd.DataFrame) -> Dict[int, str]
 
     k = len(centroids)
     if k == 1:
-        return {0: "All Customers"}
+        return {int(centroids["cluster"].iloc[0]): "All Customers"}
 
-    # Compute ranks (0 to 1 scale)
-    # Recency: lower days is better -> invert ranking so 1.0 is freshest
     r_vals = centroids["recency"].values
     f_vals = centroids["frequency"].values
     m_vals = centroids["monetary"].values
@@ -161,52 +174,54 @@ def generate_cluster_label_mapping(clustered_df: pd.DataFrame) -> Dict[int, str]
     def _normalize(arr, invert=False):
         min_v, max_v = arr.min(), arr.max()
         if max_v == min_v:
-            return np.full_like(arr, 0.5)
+            return np.full_like(arr, 0.5, dtype=float)
         norm = (arr - min_v) / (max_v - min_v)
         return (1.0 - norm) if invert else norm
 
-    r_scores = _normalize(r_vals, invert=True)  # Low recency = 1.0
+    # Recency: lower days is better -> invert ranking so 1.0 is freshest
+    r_inverted = _normalize(r_vals, invert=True)
     f_scores = _normalize(f_vals, invert=False)
     m_scores = _normalize(m_vals, invert=False)
+
+    # Weighted composite score: 35% Recency, 35% Frequency, 30% Monetary
+    composite_scores = 0.35 * r_inverted + 0.35 * f_scores + 0.30 * m_scores
+    centroids["composite_score"] = composite_scores
+
+    # Sort centroids descending by composite score (strongest -> weakest)
+    sorted_centroids = centroids.sort_values(by="composite_score", ascending=False).reset_index(drop=True)
 
     assigned: Dict[int, str] = {}
     used_labels = set()
 
-    # Candidate ranking for each cluster
-    for i, row in centroids.iterrows():
+    for rank, row in sorted_centroids.iterrows():
         c_id = int(row["cluster"])
-        r_s, f_s, m_s = r_scores[i], f_scores[i], m_scores[i]
-        label = classify_cluster(r_s, f_s, m_s)
+        persona_idx = int(round(rank * (len(ORDERED_PERSONAS) - 1) / (k - 1)))
+        base_label = ORDERED_PERSONAS[persona_idx]
 
-        # Disambiguate if label already taken by another cluster
+        label = base_label
         if label in used_labels:
-            # Pick next best semantic fit
-            composite_score = 0.4 * r_s + 0.3 * f_s + 0.3 * m_s
-            alternatives = [
-                ("Champions", composite_score >= 0.75),
-                ("Loyal Customers", composite_score >= 0.6 and f_s >= 0.5),
-                ("Potential Loyalists", r_s >= 0.6 and composite_score >= 0.5),
-                ("New Customers", r_s >= 0.6 and f_s <= 0.3),
-                ("Promising", r_s >= 0.5 and m_s >= 0.4),
-                ("Needs Attention", composite_score >= 0.35),
-                ("At Risk", composite_score < 0.5 and (f_s > 0.4 or m_s > 0.4)),
-                ("About to Sleep", composite_score < 0.35 and r_s < 0.4),
-                ("Lost / Dormant", composite_score < 0.25),
-            ]
-            fallback_chosen = False
-            for alt_name, cond in alternatives:
-                if alt_name not in used_labels and cond:
-                    label = alt_name
-                    fallback_chosen = True
-                    break
-            if not fallback_chosen:
-                for alt_name, _ in alternatives:
-                    if alt_name not in used_labels:
-                        label = alt_name
-                        break
+            tier = 2
+            while f"{base_label} (Tier {tier})" in used_labels:
+                tier += 1
+            label = f"{base_label} (Tier {tier})"
 
         assigned[c_id] = label
         used_labels.add(label)
+
+        # Ensure label exists in SEGMENT_COLORS and PERSONA_DEFINITIONS
+        if label not in SEGMENT_COLORS:
+            SEGMENT_COLORS[label] = SEGMENT_COLORS.get(base_label, "#7f7f7f")
+        if label not in PERSONA_DEFINITIONS:
+            base_meta = PERSONA_DEFINITIONS.get(base_label, {
+                "description": "Customer segment identified through behavioral clustering.",
+                "action": "Tailor marketing strategy based on RFM profile.",
+                "color": "#7f7f7f",
+            })
+            PERSONA_DEFINITIONS[label] = {
+                "description": f"{base_meta['description']} ({label})",
+                "action": base_meta["action"],
+                "color": SEGMENT_COLORS[label],
+            }
 
     return assigned
 

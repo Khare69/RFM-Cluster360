@@ -58,3 +58,16 @@ def test_run_kmeans_and_build_df(synthetic_rfm_base):
     assert "customer_share_pct" in profiles.columns
     assert "revenue_share_pct" in profiles.columns
     assert round(profiles["customer_share_pct"].sum(), 0) == 100.0
+
+
+def test_evaluate_clusters_low_variance():
+    """Verify that evaluate_clusters safely returns early with warning when features have near-zero variance."""
+    low_var_data = np.zeros((20, 3))
+    eval_results = evaluate_clusters(low_var_data)
+
+    assert eval_results.get("is_low_variance") is True
+    assert "warning" in eval_results
+    assert eval_results["best_silhouette"] == 0.0
+    assert eval_results["best_k"] in eval_results["k_values"]
+    assert len(eval_results["k_values"]) > 0
+

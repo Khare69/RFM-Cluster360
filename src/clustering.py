@@ -98,6 +98,18 @@ def evaluate_clusters(
         if not valid_ks:
             raise ValueError(f"Insufficient samples ({n_samples}) for evaluated k_range.")
         eval_range = valid_ks
+    # Low-variance guard: check if scaled features have near-zero variance
+    if float(scaled_data.std()) < 0.01:
+        eval_list = list(eval_range)
+        return {
+            "k_values": eval_list,
+            "silhouette_scores": [0.0] * len(eval_list),
+            "inertias": [0.0] * len(eval_list),
+            "best_k": eval_list[0],
+            "best_silhouette": 0.0,
+            "is_low_variance": True,
+            "warning": "Dataset has near-zero variance across RFM features. Clustering may not reveal distinct behavioral segments.",
+        }
 
     k_values: List[int] = []
     silhouette_scores: List[float] = []

@@ -64,6 +64,8 @@ with tab_ml:
 
     eval_metrics = st.session_state.clustering_metrics
     if eval_metrics:
+        if eval_metrics.get("warning"):
+            st.warning(f"⚠️ {eval_metrics['warning']}")
         col1, col2 = st.columns(2)
         with col1:
             fig_elbow = elbow_curve(eval_metrics)
