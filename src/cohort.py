@@ -61,6 +61,11 @@ def build_cohort_matrix(
         values="customer_id",
     )
 
+    # Reindex columns to contiguous range 0..max_period to avoid skipping quiet months
+    if not counts_matrix.empty and len(counts_matrix.columns) > 0:
+        max_period = int(counts_matrix.columns.max())
+        counts_matrix = counts_matrix.reindex(columns=range(0, max_period + 1))
+
     # Format cohort month index as readable string (e.g., '2023-01')
     counts_matrix.index = counts_matrix.index.strftime("%Y-%m")
 

@@ -7,6 +7,7 @@ import difflib
 import re
 from typing import Dict, List, Optional, Tuple, Union
 import pandas as pd
+import streamlit as st
 
 from config.settings import (
     COLUMN_ALIASES,
@@ -22,6 +23,7 @@ def _normalize_name(name: str) -> str:
     return re.sub(r"[^a-z0-9]", "", str(name).lower())
 
 
+@st.cache_data(show_spinner=False)
 def load_csv(
     file_source: Union[str, bytes, io.BytesIO, io.StringIO, object],
     max_size_mb: int = MAX_FILE_SIZE_MB,

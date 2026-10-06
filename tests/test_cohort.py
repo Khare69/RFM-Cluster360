@@ -54,3 +54,25 @@ def test_build_cohort_matrix():
     assert stats["total_cohorts"] == 2
     # Avg M1 retention: (100 + 50) / 2 = 75.0%
     assert stats["avg_m1_retention"] == 75.0
+
+
+def test_build_cohort_matrix_non_contiguous_months():
+    """Verify that cohort matrix fills missing/gap months with NaN rather than skipping columns."""
+    data = [
+        # Customer 1: Bought in Jan 2023 (Month 0), skipped Feb & Mar, bought again in April 2023 (Month 3)
+        {"customer_id": "C1", "invoice_date": "2023-01-10"},
+        {"customer_id": "C1", "invoice_date": "2023-04-15"},
+    ]
+    df = pd.DataFrame(data)
+
+    retention_matrix, counts_matrix = build_cohort_matrix(df)
+
+    assert "2023-01" in retention_matrix.index
+    # All intermediate months [0, 1, 2, 3] must exist in columns
+    assert list(retention_matrix.columns) == [0, 1, 2, 3]
+    jan_ret = retention_matrix.loc["2023-01"]
+    assert jan_ret[0] == 100.0
+    assert pd.isna(jan_ret[1])
+    assert pd.isna(jan_ret[2])
+    assert jan_ret[3] == 100.0
+

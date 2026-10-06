@@ -6,6 +6,7 @@ Implements log-transformations, standardization, automatic k-selection via silho
 from typing import Any, Dict, List, Optional, Tuple, Union
 import numpy as np
 import pandas as pd
+import streamlit as st
 from sklearn.cluster import KMeans
 from sklearn.metrics import silhouette_score
 from sklearn.preprocessing import StandardScaler
@@ -13,6 +14,7 @@ from sklearn.preprocessing import StandardScaler
 from config.settings import DEFAULT_K_MAX, DEFAULT_K_MIN, MIN_CUSTOMERS_FOR_CLUSTERING, RANDOM_STATE
 
 
+@st.cache_data(show_spinner=False)
 def preprocess_rfm(
     rfm_df: pd.DataFrame,
     features: Optional[List[str]] = None,
@@ -60,6 +62,7 @@ def preprocess_rfm(
     return scaled_data, scaler, cols
 
 
+@st.cache_data(show_spinner=False)
 def evaluate_clusters(
     scaled_data: np.ndarray,
     k_range: Optional[range] = None,

@@ -121,8 +121,12 @@ def rfm_summary_scatter(labeled_df: pd.DataFrame) -> go.Figure:
     """
     2D bubble scatter: Recency vs Monetary with Frequency as bubble size.
     """
+    plot_df = labeled_df.copy()
+    # Guard against $0.00 spend producing -inf on log_y scale: clip minimum monetary to $0.01
+    plot_df["monetary"] = plot_df["monetary"].clip(lower=0.01)
+
     fig = px.scatter(
-        labeled_df,
+        plot_df,
         x="recency",
         y="monetary",
         size="frequency",

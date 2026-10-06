@@ -70,3 +70,17 @@ def test_get_rfm_summary_stats(clean_test_transactions):
     assert "monetary" in stats
     assert stats["monetary"]["max"] == 300.0
     assert stats["monetary"]["min"] == 85.0
+
+
+def test_rfm_summary_scatter_zero_monetary():
+    """Verify rfm_summary_scatter handles $0.00 monetary values safely without log_y -inf crash."""
+    from viz.overview_charts import rfm_summary_scatter
+
+    df = pd.DataFrame([
+        {"customer_id": "C1", "recency": 10, "frequency": 1, "monetary": 0.0, "segment": "Champions"},
+        {"customer_id": "C2", "recency": 5, "frequency": 2, "monetary": 100.0, "segment": "Loyal Customers"},
+    ])
+    fig = rfm_summary_scatter(df)
+    assert fig is not None
+    assert len(fig.data) > 0
+
