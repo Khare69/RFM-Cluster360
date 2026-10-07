@@ -1,0 +1,108 @@
+================================================================================
+                    RFM Cluster360 — How to Run the Website
+================================================================================
+
+This file contains the exact terminal commands and step-by-step instructions 
+to launch and view the RFM Cluster360 web application in your browser.
+
+--------------------------------------------------------------------------------
+QUICK START (ONE COMMAND)
+--------------------------------------------------------------------------------
+
+If your virtual environment (.venv) is already set up:
+
+  [Windows PowerShell]
+  .\.venv\Scripts\streamlit run app.py
+
+  [Windows Command Prompt (CMD)]
+  .venv\Scripts\streamlit.exe run app.py
+
+  [Linux / macOS / Git Bash]
+  ./.venv/bin/streamlit run app.py
+
+The application will start the local server and automatically open the webpage 
+in your default browser at:
+  http://localhost:8501
+
+--------------------------------------------------------------------------------
+STEP-BY-STEP INSTRUCTIONS (FIRST TIME SETUP)
+--------------------------------------------------------------------------------
+
+Step 1: Open a terminal in this project folder
+---------------------------------------------
+Ensure your current directory is the root of the project:
+  c:\Users\parth\OneDrive\Desktop\personal projects\rfm cluster360
+
+
+Step 2: Activate the virtual environment
+----------------------------------------
+- On Windows (PowerShell):
+    .\.venv\Scripts\Activate.ps1
+
+    * Note: If PowerShell shows an ExecutionPolicy error, run this once:
+      Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+
+- On Windows (Command Prompt / CMD):
+    .venv\Scripts\activate.bat
+
+- On macOS / Linux:
+    source .venv/bin/activate
+
+
+Step 3: (Optional) Verify or install dependencies
+-------------------------------------------------
+To ensure all required libraries (Streamlit, Pandas, Scikit-Learn, Plotly, 
+Boto3, PyArrow) are installed:
+    pip install -r requirements.txt
+
+
+Step 4: Launch the Streamlit web application
+--------------------------------------------
+Run this command in your terminal:
+    streamlit run app.py
+
+If your browser does not open automatically, open your browser manually and go to:
+    http://localhost:8501
+    or
+    http://127.0.0.1:8501
+
+
+Step 5: How to stop the server
+------------------------------
+To stop the web application at any time, go to the terminal window and press:
+    Ctrl + C
+
+--------------------------------------------------------------------------------
+HOW TO USE THE WEBSITE (FEATURES ONCE OPEN)
+--------------------------------------------------------------------------------
+
+1. Load Data:
+   - "📁 Upload Your CSV": Upload your own retail transaction export.
+   - "🧪 Try Sample Dataset": Click "Load Sample Retail Dataset" (~1,200 demo rows).
+   - "☁️ Load from S3 Bucket": Ingest directly from AWS S3 or the built-in offline 
+     mock storage (Bucket: 'retail-data', Key: 'transactions.csv' or 'transactions.parquet').
+
+2. Run Pipeline:
+   - Check the column auto-mapping and click "✨ Run Customer Segmentation Pipeline".
+
+3. Explore Dashboards via the Left Sidebar:
+   - 📊 1. Overview: Executive metrics, revenue distribution, persona playbooks.
+   - 🔍 2. RFM Explorer: Metric distributions, Elbow & Silhouette scores.
+   - 🗺️ 3. 3D Cluster Map: Interactive 3D customer space with rotatable view.
+   - 👤 4. Customer Search: Individual customer purchase timeline & percentiles.
+   - 📈 5. Cohort Retention: Monthly acquisition cohort retention heatmap.
+
+4. Export Results:
+   - Download segmented customers as CSV or Apache Parquet (.parquet), or 
+     export directly to an AWS S3 bucket.
+
+--------------------------------------------------------------------------------
+RUNNING THE AUTOMATED TESTS
+--------------------------------------------------------------------------------
+
+To run the complete 37-test automated unit test suite:
+    pytest -v
+    or
+    .\.venv\Scripts\pytest -v
+
+================================================================================
