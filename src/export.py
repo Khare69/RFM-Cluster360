@@ -3,6 +3,7 @@ Data export utility module.
 Prepares clean, labeled customer segmentation DataFrames and serializes them to CSV bytes for download.
 """
 
+import io
 from typing import List, Optional
 import pandas as pd
 
@@ -76,3 +77,28 @@ def to_csv_bytes(
     """
     export_df = df[columns] if columns is not None else df
     return export_df.to_csv(index=False).encode("utf-8")
+
+
+def to_parquet_bytes(
+    df: pd.DataFrame,
+    columns: Optional[List[str]] = None,
+) -> bytes:
+    """
+    Serializes a DataFrame into Apache Parquet binary bytes using pyarrow.
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        DataFrame to export.
+    columns : list of str, optional
+        Specific column subset to include.
+
+    Returns
+    -------
+    bytes
+        Apache Parquet file content as bytes.
+    """
+    export_df = df[columns] if columns is not None else df
+    buffer = io.BytesIO()
+    export_df.to_parquet(buffer, engine="pyarrow", index=False)
+    return buffer.getvalue()

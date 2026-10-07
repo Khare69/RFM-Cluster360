@@ -122,3 +122,15 @@ DEFAULT_CLUSTER_COLORS = [
     "#1f77b4", "#ff7f0e", "#2ca02c", "#d62728",
     "#9467bd", "#8c564b", "#e377c2", "#7f7f7f", "#bcbd22", "#17becf"
 ]
+
+# Cloud Storage & AWS S3 Settings
+AWS_ACCESS_KEY_ID = os.getenv("AWS_ACCESS_KEY_ID", "")
+AWS_SECRET_ACCESS_KEY = os.getenv("AWS_SECRET_ACCESS_KEY", "")
+AWS_DEFAULT_REGION = os.getenv("AWS_DEFAULT_REGION", "us-east-1")
+AWS_S3_BUCKET = os.getenv("AWS_S3_BUCKET", "")
+USE_LOCAL_MOCK = os.getenv("USE_LOCAL_MOCK", "false").lower() in ("true", "1", "yes")
+MOCK_S3_DIR = os.getenv(
+    "MOCK_S3_DIR",
+    os.path.abspath(os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "mock_s3")),
+)
+

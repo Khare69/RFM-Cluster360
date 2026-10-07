@@ -17,6 +17,7 @@ from config.settings import (
 from components.data_preview import render_cleaning_report_card, render_column_mapping_ui
 from components.download_button import render_export_section
 from src.cleaning import clean_transactions
+from src.cloud_storage import is_mock_mode, load_from_s3
 from src.clustering import build_clustered_df, evaluate_clusters, preprocess_rfm, run_kmeans
 from src.cohort import build_cohort_matrix
 from src.ingestion import auto_map_columns, load_csv, validate_mapping
@@ -179,7 +180,11 @@ def main():
 
     # If no dataset loaded, show Ingestion Interface
     if st.session_state.labeled_df is None:
-        tab_upload, tab_sample = st.tabs(["📁 Upload Your CSV", "🧪 Try Sample Dataset"])
+        tab_upload, tab_sample, tab_s3 = st.tabs([
+            "📁 Upload Your CSV",
+            "🧪 Try Sample Dataset",
+            "☁️ Load from S3 Bucket",
+        ])
 
         raw_df = None
         file_name = None
@@ -220,6 +225,70 @@ def main():
                         st.session_state.temp_file_name = file_name
                 else:
                     st.error("Sample dataset file not found.")
+
+        with tab_s3:
+            st.markdown(
+                "Ingest retail transaction logs directly from an **AWS S3 bucket** (supports `.csv` and `.parquet` formats)."
+            )
+            mock_active = is_mock_mode()
+            if mock_active:
+                st.info(
+                    "🧪 **Local Mock Mode Active (`USE_LOCAL_MOCK=true`)**\n\n"
+                    "Data will be read from `data/mock_s3/{bucket}/{key}`. "
+                    "Pre-loaded demo: Bucket `retail-data` with Key `transactions.csv` or `transactions.parquet`."
+                )
+
+            s3_in_col1, s3_in_col2 = st.columns(2)
+            with s3_in_col1:
+                input_bucket = st.text_input(
+                    "S3 Bucket Name",
+                    value=os.getenv("AWS_S3_BUCKET", "retail-data" if mock_active else ""),
+                    placeholder="e.g. retail-data",
+                    key="ingest_s3_bucket",
+                    help="Target S3 bucket name.",
+                )
+            with s3_in_col2:
+                input_key = st.text_input(
+                    "Object Key / File Path",
+                    value="transactions.csv" if mock_active else "",
+                    placeholder="e.g. transactions.csv or data.parquet",
+                    key="ingest_s3_key",
+                    help="Object key in the S3 bucket (.csv or .parquet).",
+                )
+
+            with st.expander("🔑 AWS Credentials Override (Optional if defined in .env)"):
+                ci1, ci2, ci3 = st.columns(3)
+                with ci1:
+                    s3_cred_id = st.text_input("Access Key ID", type="password", key="ingest_s3_id")
+                with ci2:
+                    s3_cred_secret = st.text_input("Secret Access Key", type="password", key="ingest_s3_secret")
+                with ci3:
+                    s3_cred_region = st.text_input(
+                        "AWS Region",
+                        value=os.getenv("AWS_DEFAULT_REGION", "us-east-1"),
+                        key="ingest_s3_region",
+                    )
+
+            if st.button("☁️ Ingest from S3", type="primary"):
+                if not input_bucket.strip() or not input_key.strip():
+                    st.error("Please specify both S3 Bucket Name and Object Key.")
+                else:
+                    with st.spinner(f"Connecting and downloading s3://{input_bucket.strip()}/{input_key.strip()}..."):
+                        df_parsed, err = load_from_s3(
+                            bucket=input_bucket.strip(),
+                            key=input_key.strip(),
+                            aws_access_key_id=s3_cred_id.strip() or None,
+                            aws_secret_access_key=s3_cred_secret.strip() or None,
+                            region_name=s3_cred_region.strip() or None,
+                        )
+                        if err:
+                            st.error(f"❌ {err}")
+                        else:
+                            raw_df = df_parsed
+                            file_name = f"s3://{input_bucket.strip()}/{input_key.strip()}"
+                            st.session_state.is_sample_data = False
+                            st.session_state.temp_raw_df = raw_df
+                            st.session_state.temp_file_name = file_name
 
         if raw_df is None and "temp_raw_df" in st.session_state:
             raw_df = st.session_state.temp_raw_df
