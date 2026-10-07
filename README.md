@@ -1,4 +1,6 @@
-# 🎯 RFM Cluster360 — Customer Intelligence & Behavioral Segmentat[![Python](https://img.shields.io/badge/Python-3.11+-blue.svg)](https://www.python.org/)
+# 🎯 RFM Cluster360 — Customer Intelligence & Behavioral Segmentation
+
+[![Python](https://img.shields.io/badge/Python-3.11+-blue.svg)](https://www.python.org/)
 [![Streamlit](https://img.shields.io/badge/Streamlit-1.28+-FF4B4B.svg)](https://streamlit.io/)
 [![scikit-learn](https://img.shields.io/badge/scikit--learn-1.3+-F7931E.svg)](https://scikit-learn.org/)
 [![Plotly](https://img.shields.io/badge/Plotly-5.17+-3F4F75.svg)](https://plotly.com/)
@@ -8,6 +10,7 @@
 [![License](https://img.shields.io/badge/License-Apache_2.0-green.svg)](LICENSE)
 
 An enterprise-ready customer intelligence and segmentation platform that transforms raw retail transaction exports into actionable customer personas using **Recency, Frequency, and Monetary (RFM)** modeling and **Unsupervised Machine Learning (K-Means Clustering)**.
+
 
 ---
 
@@ -68,7 +71,12 @@ An enterprise-ready customer intelligence and segmentation platform that transfo
 
 9. **Blazing-Fast Reactive Performance**
    - Computationally intensive operations (`load_csv`, `calculate_rfm`, `preprocess_rfm`, `evaluate_clusters`) are accelerated with `@st.cache_data`.
-   - Instant response times on sidebar filter changes and interactive exploration.IDs, and persona labels in UTF-8 CSV format.
+   - Instant response times on sidebar filter changes and interactive exploration.
+
+10. **One-Click Multi-Format & Cloud Export**
+   - Download the full segmented customer list with RFM metrics, cluster IDs, and persona labels in UTF-8 CSV or Apache Parquet formats.
+   - Upload directly to AWS S3 buckets or local mock storage from the export interface.
+
 
 ---
 
@@ -115,6 +123,7 @@ flowchart TD
 ```
 rfm-cluster360/
 ├── app.py                          # Streamlit entrypoint, pipeline orchestrator & S3 ingestion tab
+├── HOW_TO_RUN.txt                  # Quick launch terminal commands and setup guide
 ├── requirements.txt                # Pinned dependencies (including boto3, pyarrow, moto)
 ├── .env.example                    # Template for AWS S3 and application environment variables
 ├── .gitignore
