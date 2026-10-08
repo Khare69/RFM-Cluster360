@@ -123,6 +123,14 @@ flowchart TD
         Persona --> ExportParquet[Download Apache Parquet]
         Persona --> ExportS3[Direct Export to AWS S3 / Mock]
     end
+
+    subgraph Container ["5. Containerized Production Deployment"]
+        Presentation --> AppServe["Streamlit Multi-Page App (:8501)"]
+        AppServe --> MultiStage["Multi-Stage Docker Image (python:3.11-slim)"]
+        MultiStage --> SecureRun["Least-Privilege Non-Root Execution (UID 1000)"]
+        SecureRun --> AutoHealth["Continuous HEALTHCHECK (/_stcore/health)"]
+        SecureRun --> ComposeUp["Docker Compose Orchestration & Volume Mounts"]
+    end
 ```
 
 ### Directory Structure

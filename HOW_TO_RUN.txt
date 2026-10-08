@@ -97,10 +97,24 @@ HOW TO USE THE WEBSITE (FEATURES ONCE OPEN)
      export directly to an AWS S3 bucket.
 
 --------------------------------------------------------------------------------
+RUNNING WITH DOCKER (CONTAINERIZED)
+--------------------------------------------------------------------------------
+
+Option A: Docker Compose (Quickest)
+    docker compose up --build
+
+Option B: Manual Docker Build & Run
+    docker build -t rfm-cluster360 .
+    docker run -d -p 8501:8501 -v "${PWD}/data:/app/data" --env-file .env rfm-cluster360
+
+The containerized app will be available at:
+    http://localhost:8501
+
+--------------------------------------------------------------------------------
 RUNNING THE AUTOMATED TESTS
 --------------------------------------------------------------------------------
 
-To run the complete 37-test automated unit test suite:
+To run the complete 40-test automated unit test suite:
     pytest -v
     or
     .\.venv\Scripts\pytest -v
