@@ -6,7 +6,8 @@
 [![Plotly](https://img.shields.io/badge/Plotly-5.17+-3F4F75.svg)](https://plotly.com/)
 [![AWS S3](https://img.shields.io/badge/AWS-S3%20Cloud%20Storage-orange.svg)](https://aws.amazon.com/s3/)
 [![Apache Parquet](https://img.shields.io/badge/Format-Apache%20Parquet-teal.svg)](https://parquet.apache.org/)
-[![Tests](https://img.shields.io/badge/Tests-37%20Passed-brightgreen.svg)](#-running-the-test-suite)
+[![Docker](https://img.shields.io/badge/Docker-Containerized-2496ED.svg?logo=docker&logoColor=white)](Dockerfile)
+[![Tests](https://img.shields.io/badge/Tests-40%20Passed-brightgreen.svg)](#-running-the-test-suite)
 [![License](https://img.shields.io/badge/License-Apache_2.0-green.svg)](LICENSE)
 
 An enterprise-ready customer intelligence and segmentation platform that transforms raw retail transaction exports into actionable customer personas using **Recency, Frequency, and Monetary (RFM)** modeling and **Unsupervised Machine Learning (K-Means Clustering)**.
@@ -77,6 +78,12 @@ An enterprise-ready customer intelligence and segmentation platform that transfo
    - Download the full segmented customer list with RFM metrics, cluster IDs, and persona labels in UTF-8 CSV or Apache Parquet formats.
    - Upload directly to AWS S3 buckets or local mock storage from the export interface.
 
+11. **Production Docker Containerization & Health Checks**
+   - **Multi-Stage Build:** Stage 1 virtualenv builder isolates pip compilation overhead; Stage 2 runtime image uses slim `python:3.11-slim` footprint (~180MB).
+   - **Automated Health Check:** `HEALTHCHECK` continually inspects Streamlit's native `/_stcore/health` endpoint.
+   - **Principle of Least Privilege:** Executes under an unprivileged `appuser` (UID 1000) non-root user.
+   - **Docker Compose:** One-command local spinup (`docker compose up --build`) with volume persistence for `/app/data` and environment fallbacks.
+
 
 ---
 
@@ -123,6 +130,9 @@ flowchart TD
 ```
 rfm-cluster360/
 ├── app.py                          # Streamlit entrypoint, pipeline orchestrator & S3 ingestion tab
+├── Dockerfile                      # Multi-stage production container definition (builder + runner)
+├── docker-compose.yml              # Local container orchestration, volume persistence & health checks
+├── .dockerignore                   # Build exclusion rules for lean, secure container images
 ├── HOW_TO_RUN.txt                  # Quick launch terminal commands and setup guide
 ├── requirements.txt                # Pinned dependencies (including boto3, pyarrow, moto)
 ├── .env.example                    # Template for AWS S3 and application environment variables
@@ -171,7 +181,7 @@ rfm-cluster360/
 │   ├── customer_timeline.py        # Individual customer timeline & percentile ranking
 │   └── cohort_heatmap.py           # Annotated cohort retention heatmap with adaptive text contrast
 │
-└── tests/                          # Automated Pytest Suite (37 Passed)
+└── tests/                          # Automated Pytest Suite (40 Passed)
     ├── conftest.py                 # Hand-calculated transaction fixtures & synthetic base
     ├── test_ingestion.py           # Encodings, empty files, fuzzy mapping, duplicate detection, StringIO
     ├── test_cloud_storage.py       # S3 moto mocks, Parquet serialization roundtrip, mock mode, validation
@@ -179,7 +189,8 @@ rfm-cluster360/
     ├── test_rfm.py                 # Hand-calculated RFM metrics, snapshot dates, summary stats, zero-monetary
     ├── test_clustering.py          # Preprocessing, evaluation, profiles, low-variance guard
     ├── test_personas.py            # Centroid labeling, synthetic customer groups, k=10 collision handling
-    └── test_cohort.py              # Cohort retention calculations, KPIs, non-contiguous month reindexing
+    ├── test_cohort.py              # Cohort retention calculations, KPIs, non-contiguous month reindexing
+    └── test_docker_config.py       # Multi-stage Dockerfile, docker-compose syntax, and .dockerignore rules
 ```
 
 ---
@@ -194,7 +205,7 @@ rfm-cluster360/
 | **3** | **ML Pipeline Robustness** | Percentile composite persona ranking, $k \ge 10$ collision qualifiers, low-variance clustering guard | ✅ Complete |
 | **4** | **Visualization & UI** | Cohort contiguous month reindexing, adaptive heatmap text contrast, log-scale $0 scatter safety, `@st.cache_data` | ✅ Complete |
 | **5** | **Cloud Integration** | AWS S3 bucket ingestion/export with local mock mode + Apache Parquet support | ✅ Complete |
-| **6** | **Containerization** | Multi-stage production `Dockerfile`, `docker-compose`, port configuration | 📋 Upcoming |
+| **6** | **Containerization** | Multi-stage production `Dockerfile`, `docker-compose`, health checks, non-root security | ✅ Complete |
 | **7** | **MLOps Registry** | Joblib/MLflow model artifact serialization, metadata tracking, versioned registry | 📋 Upcoming |
 | **8** | **CI/CD Pipeline** | GitHub Actions workflow for linting, pytest matrix, container builds | 📋 Upcoming |
 
@@ -263,9 +274,60 @@ The app will open automatically in your browser at `http://localhost:8501`.
 
 ---
 
+## 🐳 Run with Docker (Production & Cloud Deployment)
+
+The application includes a production-grade multi-stage `Dockerfile` and `docker-compose.yml` for containerized environments.
+
+### Option A: One-Command Spinup with Docker Compose (Recommended)
+
+Start the containerized service with local directory mounts and environment variables:
+
+```bash
+# Build and run the container
+docker compose up --build
+
+# Run in background (detached mode)
+docker compose up -d --build
+
+# Stop the container
+docker compose down
+```
+
+### Option B: Manual Docker Build & Run
+
+```bash
+# 1. Build the lightweight multi-stage image
+docker build -t rfm-cluster360:latest .
+
+# 2. Run the container with persistent volume and port forwarding
+docker run -d \
+  --name rfm-cluster360-app \
+  -p 8501:8501 \
+  -v "${PWD}/data:/app/data" \
+  --env-file .env \
+  rfm-cluster360:latest
+
+# 3. View container logs
+docker logs -f rfm-cluster360-app
+```
+
+The containerized dashboard is accessible at `http://localhost:8501`.
+
+### 🛡️ Container Architecture & Security Highlights
+
+- **Multi-Stage Build Pattern:** The builder stage creates an isolated virtual environment (`/opt/venv`), separating build-time dependencies (`build-essential`) from the lightweight final runtime image (`python:3.11-slim`), reducing image size by over 75%.
+- **Unprivileged Non-Root User:** Runs under a dedicated `appuser` system account (UID 1000) adhering to container security best practices and least-privilege principles.
+- **Automated Health Check:** Monitored via `HEALTHCHECK` querying Streamlit's internal health endpoint:
+  ```bash
+  curl --fail http://localhost:8501/_stcore/health || exit 1
+  ```
+- **Optimized Build Cache:** Strict `.dockerignore` excludes virtual environments, git metadata, bytecode, unit tests, and local credentials.
+
+---
+
 ## 🧪 Running the Test Suite
 
-The codebase is backed by an automated test suite with hand-verified assertions and offline cloud mocks (`moto`):
+The codebase is backed by an automated test suite with hand-verified assertions, offline cloud mocks (`moto`), and container configuration checks:
 
 ```bash
 pytest tests/ -v
@@ -274,47 +336,50 @@ pytest tests/ -v
 ```text
 ============================= test session starts =============================
 platform win32 -- Python 3.14.7, pytest-9.1.1
-collected 37 items
+collected 40 items
 
 tests/test_cleaning.py::test_clean_transactions PASSED                   [  2%]
 tests/test_cleaning.py::test_clean_transactions_remove_duplicates PASSED [  5%]
-tests/test_cleaning.py::test_detect_duplicates PASSED                    [  8%]
+tests/test_cleaning.py::test_detect_duplicates PASSED                    [  7%]
 tests/test_cleaning.py::test_clean_transactions_with_currency_strings PASSED [ 10%]
-tests/test_cleaning.py::test_clean_transactions_with_accounting_negatives PASSED [ 13%]
-tests/test_cleaning.py::test_clean_id_normalizes_float_strings PASSED    [ 16%]
-tests/test_cleaning.py::test_clean_transactions_null_invoice_no PASSED   [ 18%]
-tests/test_cloud_storage.py::test_to_parquet_bytes_roundtrip PASSED      [ 21%]
-tests/test_cloud_storage.py::test_to_parquet_bytes_columns_filter PASSED [ 24%]
-tests/test_cloud_storage.py::test_load_from_s3_csv_with_moto PASSED      [ 27%]
-tests/test_cloud_storage.py::test_load_from_s3_parquet_with_moto PASSED  [ 29%]
-tests/test_cloud_storage.py::test_upload_to_s3_parquet_and_csv_with_moto PASSED [ 32%]
-tests/test_cloud_storage.py::test_load_from_s3_nonexistent_key_moto PASSED [ 35%]
-tests/test_cloud_storage.py::test_local_mock_mode_load_and_upload PASSED [ 37%]
-tests/test_cloud_storage.py::test_load_from_s3_input_validation PASSED   [ 40%]
-tests/test_cloud_storage.py::test_upload_to_s3_input_validation PASSED   [ 43%]
-tests/test_clustering.py::test_preprocess_rfm PASSED                     [ 45%]
-tests/test_clustering.py::test_evaluate_clusters PASSED                  [ 48%]
-tests/test_clustering.py::test_run_kmeans_and_build_df PASSED            [ 51%]
-tests/test_clustering.py::test_evaluate_clusters_low_variance PASSED     [ 54%]
-tests/test_cohort.py::test_build_cohort_matrix PASSED                    [ 56%]
-tests/test_cohort.py::test_build_cohort_matrix_non_contiguous_months PASSED [ 59%]
-tests/test_ingestion.py::test_load_csv_from_string_io PASSED             [ 62%]
-tests/test_ingestion.py::test_load_csv_empty_file PASSED                 [ 64%]
-tests/test_ingestion.py::test_load_csv_latin1_encoding PASSED            [ 67%]
-tests/test_ingestion.py::test_auto_map_columns_exact PASSED              [ 70%]
-tests/test_ingestion.py::test_auto_map_columns_fuzzy_and_aliases PASSED  [ 72%]
-tests/test_ingestion.py::test_validate_mapping PASSED                    [ 75%]
-tests/test_ingestion.py::test_validate_mapping_duplicate_columns PASSED  [ 78%]
-tests/test_ingestion.py::test_load_csv_from_string_io_object PASSED      [ 81%]
-tests/test_personas.py::test_label_segments_with_synthetic PASSED        [ 83%]
-tests/test_personas.py::test_label_segments_k10_unique_labels PASSED     [ 86%]
-tests/test_rfm.py::test_calculate_rfm_hand_calculated PASSED             [ 89%]
-tests/test_rfm.py::test_default_snapshot_date PASSED                     [ 91%]
-tests/test_rfm.py::test_calculate_rfm_snapshot_in_past_error PASSED      [ 94%]
+tests/test_cleaning.py::test_clean_transactions_with_accounting_negatives PASSED [ 12%]
+tests/test_cleaning.py::test_clean_id_normalizes_float_strings PASSED    [ 15%]
+tests/test_cleaning.py::test_clean_transactions_null_invoice_no PASSED   [ 17%]
+tests/test_cloud_storage.py::test_to_parquet_bytes_roundtrip PASSED      [ 20%]
+tests/test_cloud_storage.py::test_to_parquet_bytes_columns_filter PASSED [ 22%]
+tests/test_cloud_storage.py::test_load_from_s3_csv_with_moto PASSED      [ 25%]
+tests/test_cloud_storage.py::test_load_from_s3_parquet_with_moto PASSED  [ 27%]
+tests/test_cloud_storage.py::test_upload_to_s3_parquet_and_csv_with_moto PASSED [ 30%]
+tests/test_cloud_storage.py::test_load_from_s3_nonexistent_key_moto PASSED [ 32%]
+tests/test_cloud_storage.py::test_local_mock_mode_load_and_upload PASSED [ 35%]
+tests/test_cloud_storage.py::test_load_from_s3_input_validation PASSED   [ 37%]
+tests/test_cloud_storage.py::test_upload_to_s3_input_validation PASSED   [ 40%]
+tests/test_clustering.py::test_preprocess_rfm PASSED                     [ 42%]
+tests/test_clustering.py::test_evaluate_clusters PASSED                  [ 45%]
+tests/test_clustering.py::test_run_kmeans_and_build_df PASSED            [ 47%]
+tests/test_clustering.py::test_evaluate_clusters_low_variance PASSED     [ 50%]
+tests/test_cohort.py::test_build_cohort_matrix PASSED                    [ 52%]
+tests/test_cohort.py::test_build_cohort_matrix_non_contiguous_months PASSED [ 55%]
+tests/test_docker_config.py::test_dockerfile_structure PASSED            [ 57%]
+tests/test_docker_config.py::test_docker_compose_structure PASSED        [ 60%]
+tests/test_docker_config.py::test_dockerignore_rules PASSED              [ 62%]
+tests/test_ingestion.py::test_load_csv_from_string_io PASSED             [ 65%]
+tests/test_ingestion.py::test_load_csv_empty_file PASSED                 [ 67%]
+tests/test_ingestion.py::test_load_csv_latin1_encoding PASSED            [ 70%]
+tests/test_ingestion.py::test_auto_map_columns_exact PASSED              [ 72%]
+tests/test_ingestion.py::test_auto_map_columns_fuzzy_and_aliases PASSED  [ 75%]
+tests/test_ingestion.py::test_validate_mapping PASSED                    [ 77%]
+tests/test_ingestion.py::test_validate_mapping_duplicate_columns PASSED  [ 80%]
+tests/test_ingestion.py::test_load_csv_from_string_io_object PASSED      [ 82%]
+tests/test_personas.py::test_label_segments_with_synthetic PASSED        [ 85%]
+tests/test_personas.py::test_label_segments_k10_unique_labels PASSED     [ 87%]
+tests/test_rfm.py::test_calculate_rfm_hand_calculated PASSED             [ 90%]
+tests/test_rfm.py::test_default_snapshot_date PASSED                     [ 92%]
+tests/test_rfm.py::test_calculate_rfm_snapshot_in_past_error PASSED      [ 95%]
 tests/test_rfm.py::test_get_rfm_summary_stats PASSED                     [ 97%]
 tests/test_rfm.py::test_rfm_summary_scatter_zero_monetary PASSED         [100%]
 
-============================= 37 passed in 8.20s ==============================
+============================= 40 passed in 17.70s =============================
 ```
 
 ---

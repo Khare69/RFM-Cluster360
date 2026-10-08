@@ -1,0 +1,39 @@
+# Git and IDE
+.git/
+.gitignore
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# Virtual Environments
+.venv/
+venv/
+env/
+ENV/
+
+# Python Bytecode and Caches
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Local Environment Variables & Secrets
+.env
+.env.local
+.streamlit/secrets.toml
+
+# Test Suites (excluded from production image)
+tests/
+
+# Project Planning & Specs
+implementation_plan.md
+rfm-project-mvp-spec.md
+HOW_TO_RUN.txt
+
+# Logs
+*.log
