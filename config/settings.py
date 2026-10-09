@@ -134,3 +134,9 @@ MOCK_S3_DIR = os.getenv(
     os.path.abspath(os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "mock_s3")),
 )
 
+# MLOps Model Registry Settings
+MODEL_REGISTRY_DIR = os.getenv(
+    "MODEL_REGISTRY_DIR",
+    os.path.abspath(os.path.join(os.path.dirname(os.path.dirname(__file__)), "artifacts", "models")),
+)
+

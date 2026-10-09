@@ -7,7 +7,8 @@
 [![AWS S3](https://img.shields.io/badge/AWS-S3%20Cloud%20Storage-orange.svg)](https://aws.amazon.com/s3/)
 [![Apache Parquet](https://img.shields.io/badge/Format-Apache%20Parquet-teal.svg)](https://parquet.apache.org/)
 [![Docker](https://img.shields.io/badge/Docker-Containerized-2496ED.svg?logo=docker&logoColor=white)](Dockerfile)
-[![Tests](https://img.shields.io/badge/Tests-40%20Passed-brightgreen.svg)](#-running-the-test-suite)
+[![MLOps](https://img.shields.io/badge/MLOps-Model%20Registry-blueviolet.svg)](#-mlops-model-artifact-registry)
+[![Tests](https://img.shields.io/badge/Tests-48%20Passed-brightgreen.svg)](#-running-the-test-suite)
 [![License](https://img.shields.io/badge/License-Apache_2.0-green.svg)](LICENSE)
 
 An enterprise-ready customer intelligence and segmentation platform that transforms raw retail transaction exports into actionable customer personas using **Recency, Frequency, and Monetary (RFM)** modeling and **Unsupervised Machine Learning (K-Means Clustering)**.
@@ -84,6 +85,13 @@ An enterprise-ready customer intelligence and segmentation platform that transfo
    - **Principle of Least Privilege:** Executes under an unprivileged `appuser` (UID 1000) non-root user.
    - **Docker Compose:** One-command local spinup (`docker compose up --build`) with volume persistence for `/app/data` and environment fallbacks.
 
+12. **MLOps Model Artifact Registry & Live Inference Service**
+   - **Artifact Serialization:** Persists trained Scikit-Learn `KMeans` models and fitted `StandardScaler` transformers using `joblib`.
+   - **Complete Metadata Tracking:** Every artifact version stores UTC creation timestamps, cluster counts ($k$), inertia, silhouette scores, feature definitions, and persona mappings in `metadata.json`.
+   - **Automated Pipeline Persistence:** Models are automatically snapshotted upon pipeline execution and hot-swappable on the fly.
+   - **Cross-Version Benchmarking:** Side-by-side silhouette score comparison charts and inertia curve analytics across model versions.
+   - **Real-Time Customer Classifier:** Interactive inference playground allowing sales/marketing teams to input arbitrary RFM metrics and instantly receive assigned cluster IDs, persona badges, and targeted marketing strategies.
+
 
 ---
 
@@ -124,8 +132,21 @@ flowchart TD
         Persona --> ExportS3[Direct Export to AWS S3 / Mock]
     end
 
-    subgraph Container ["5. Containerized Production Deployment"]
+    subgraph MLOps ["5. MLOps Model Artifact Registry & Inference"]
+        KMeans --> JoblibModel["joblib Serialized KMeans (.joblib)"]
+        Transform --> JoblibScaler["joblib Serialized StandardScaler (.joblib)"]
+        Persona --> MetadataJSON["Versioned Metadata & Personas (metadata.json)"]
+        JoblibModel --> RegStore["Versioned Store: artifacts/models/v{n}_k{k}_{ts}/"]
+        JoblibScaler --> RegStore
+        MetadataJSON --> RegStore
+        RegStore --> HotSwap["Model Hot-Swapping & Re-Clustering"]
+        RegStore --> LiveInfer["Real-Time Customer Inference Service"]
+    end
+
+    subgraph Container ["6. Containerized Production Deployment"]
         Presentation --> AppServe["Streamlit Multi-Page App (:8501)"]
+        HotSwap --> AppServe
+        LiveInfer --> AppServe
         AppServe --> MultiStage["Multi-Stage Docker Image (python:3.11-slim)"]
         MultiStage --> SecureRun["Least-Privilege Non-Root Execution (UID 1000)"]
         SecureRun --> AutoHealth["Continuous HEALTHCHECK (/_stcore/health)"]
@@ -142,15 +163,22 @@ rfm-cluster360/
 ├── docker-compose.yml              # Local container orchestration, volume persistence & health checks
 ├── .dockerignore                   # Build exclusion rules for lean, secure container images
 ├── HOW_TO_RUN.txt                  # Quick launch terminal commands and setup guide
-├── requirements.txt                # Pinned dependencies (including boto3, pyarrow, moto)
+├── requirements.txt                # Pinned dependencies (including boto3, pyarrow, joblib)
 ├── .env.example                    # Template for AWS S3 and application environment variables
 ├── .gitignore
 ├── README.md
 ├── LICENSE                         # Apache 2.0 License
 ├── pyrightconfig.json              # Python static type checking configuration
 │
+├── artifacts/                      # MLOps Model Artifact Registry (Git-ignored)
+│   └── models/                     # Versioned model directories (v{n}_k{k}_{timestamp})
+│       └── v1_k4_.../
+│           ├── kmeans_model.joblib # Serialized Scikit-Learn KMeans estimator
+│           ├── scaler.joblib       # Serialized StandardScaler transformation
+│           └── metadata.json       # Metrics, k, silhouette, inertia, persona mapping
+│
 ├── config/
-│   └── settings.py                 # Configuration constants, aliases, S3 configs, color palettes
+│   └── settings.py                 # Configuration constants, aliases, S3 configs, registry paths
 │
 ├── data/
 │   ├── sample_retail.csv           # Built-in demo transaction dataset
@@ -167,14 +195,16 @@ rfm-cluster360/
 │   ├── clustering.py               # Log transforms, scaling, K-Means, silhouette evaluation, variance guard
 │   ├── personas.py                 # Composite score ranking, collision-free persona classification
 │   ├── cohort.py                   # Monthly acquisition cohort retention matrix with contiguous reindexing
+│   ├── model_registry.py           # MLOps serialization, version listing, loading, and live inference
 │   └── export.py                   # Clean CSV & Apache Parquet (pyarrow) serialization
 │
 ├── pages/                          # Streamlit Multipage Navigation
-│   ├── 1_📊_Overview.py            # High-level KPIs, distributions, and playbooks
-│   ├── 2_🔍_RFM_Explorer.py        # Distributions, percentile metrics, model diagnostics
-│   ├── 3_🗺️_Cluster_Map.py         # 3D interactive customer space & 2D slices
-│   ├── 4_👤_Customer_Search.py     # Customer lookup, timeline, and percentile rankings
-│   └── 5_📈_Cohort_Retention.py    # Acquisition cohort retention heatmaps
+│   ├── 1_Overview.py               # High-level KPIs, distributions, and playbooks
+│   ├── 2_RFM_Explorer.py           # Distributions, percentile metrics, model diagnostics
+│   ├── 3_Cluster_Map.py            # 3D interactive customer space & 2D slices
+│   ├── 4_Customer_Search.py        # Customer lookup, timeline, and percentile rankings
+│   ├── 5_Cohort_Retention.py       # Acquisition cohort retention heatmaps
+│   └── 6_Model_Registry.py         # MLOps versioning, model benchmarking, and live inference
 │
 ├── components/                     # Reusable Streamlit UI widgets
 │   ├── metric_cards.py             # Executive KPI metrics & persona cards
@@ -189,7 +219,7 @@ rfm-cluster360/
 │   ├── customer_timeline.py        # Individual customer timeline & percentile ranking
 │   └── cohort_heatmap.py           # Annotated cohort retention heatmap with adaptive text contrast
 │
-└── tests/                          # Automated Pytest Suite (40 Passed)
+└── tests/                          # Automated Pytest Suite (48 Passed)
     ├── conftest.py                 # Hand-calculated transaction fixtures & synthetic base
     ├── test_ingestion.py           # Encodings, empty files, fuzzy mapping, duplicate detection, StringIO
     ├── test_cloud_storage.py       # S3 moto mocks, Parquet serialization roundtrip, mock mode, validation
@@ -198,7 +228,8 @@ rfm-cluster360/
     ├── test_clustering.py          # Preprocessing, evaluation, profiles, low-variance guard
     ├── test_personas.py            # Centroid labeling, synthetic customer groups, k=10 collision handling
     ├── test_cohort.py              # Cohort retention calculations, KPIs, non-contiguous month reindexing
-    └── test_docker_config.py       # Multi-stage Dockerfile, docker-compose syntax, and .dockerignore rules
+    ├── test_docker_config.py       # Multi-stage Dockerfile, docker-compose syntax, and .dockerignore rules
+    └── test_model_registry.py      # Artifact save/load roundtrips, version listing, deletion, live inference
 ```
 
 ---
@@ -214,7 +245,7 @@ rfm-cluster360/
 | **4** | **Visualization & UI** | Cohort contiguous month reindexing, adaptive heatmap text contrast, log-scale $0 scatter safety, `@st.cache_data` | ✅ Complete |
 | **5** | **Cloud Integration** | AWS S3 bucket ingestion/export with local mock mode + Apache Parquet support | ✅ Complete |
 | **6** | **Containerization** | Multi-stage production `Dockerfile`, `docker-compose`, health checks, non-root security | ✅ Complete |
-| **7** | **MLOps Registry** | Joblib/MLflow model artifact serialization, metadata tracking, versioned registry | 📋 Upcoming |
+| **7** | **MLOps Registry** | Joblib/JSON model artifact serialization, version registry, hot-swapping & live inference | ✅ Complete |
 | **8** | **CI/CD Pipeline** | GitHub Actions workflow for linting, pytest matrix, container builds | 📋 Upcoming |
 
 ---
@@ -244,6 +275,73 @@ USE_LOCAL_MOCK=true
 In mock mode, the app reads and writes from `data/mock_s3/{bucket}/{key}` on disk. The repository ships with ready-to-test mock datasets:
 - **Bucket:** `retail-data`
 - **Key:** `transactions.csv` or `transactions.parquet`
+
+---
+
+## 🤖 MLOps Model Artifact Registry & Inference
+
+RFM Cluster360 incorporates an enterprise-grade **MLOps Model Registry** (`src/model_registry.py`) providing versioning, persistence, hot-swapping, and real-time customer segmentation inference.
+
+### 📦 Artifact Directory Hierarchy
+
+Every trained model bundle is saved to disk with atomic components and metadata:
+
+```
+artifacts/models/
+└── v1_k4_20261009_163000/
+    ├── kmeans_model.joblib    # Serialized Scikit-Learn KMeans estimator
+    ├── scaler.joblib          # Serialized StandardScaler transformation
+    └── metadata.json          # Complete training metadata & persona mapping
+```
+
+### 📋 Model Metadata Schema (`metadata.json`)
+
+```json
+{
+  "version_id": "v1_k4_20261009_163000",
+  "created_at": "2026-10-09T11:00:00+00:00",
+  "k": 4,
+  "inertia": 78.42,
+  "silhouette_score": 0.4521,
+  "feature_names": ["recency", "frequency", "monetary"],
+  "customer_count": 120,
+  "cluster_map": {
+    "0": "Champions",
+    "1": "Loyal Customers",
+    "2": "Potential Loyalists",
+    "3": "Lost / Dormant"
+  },
+  "notes": "Auto-saved pipeline run (k=4)"
+}
+```
+
+### ⚡ Programmatic Python API
+
+Developers and data pipelines can interact with the registry programmatically:
+
+```python
+from src.model_registry import (
+    save_model_artifact,
+    list_model_versions,
+    load_model_artifact,
+    predict_segment,
+)
+
+# 1. List all registered model versions
+versions = list_model_versions()
+print(f"Latest model: {versions[0]['version_id']}, k={versions[0]['k']}")
+
+# 2. Load model artifact & fitted preprocessor
+model, scaler, cluster_map, metadata = load_model_artifact(versions[0]["path"])
+
+# 3. Real-time inference on new customer record
+customer_rfm = {"recency": 15.0, "frequency": 6.0, "monetary": 840.50}
+prediction = predict_segment(model, scaler, cluster_map, customer_rfm)
+print(f"Assigned Segment: {prediction['segment']} (Cluster #{prediction['cluster']})")
+
+# 4. Batch inference on pandas DataFrame
+batch_df = predict_segment(model, scaler, cluster_map, new_customers_df)
+```
 
 ---
 
@@ -344,50 +442,58 @@ pytest tests/ -v
 ```text
 ============================= test session starts =============================
 platform win32 -- Python 3.14.7, pytest-9.1.1
-collected 40 items
+collected 48 items
 
 tests/test_cleaning.py::test_clean_transactions PASSED                   [  2%]
-tests/test_cleaning.py::test_clean_transactions_remove_duplicates PASSED [  5%]
-tests/test_cleaning.py::test_detect_duplicates PASSED                    [  7%]
-tests/test_cleaning.py::test_clean_transactions_with_currency_strings PASSED [ 10%]
-tests/test_cleaning.py::test_clean_transactions_with_accounting_negatives PASSED [ 12%]
-tests/test_cleaning.py::test_clean_id_normalizes_float_strings PASSED    [ 15%]
-tests/test_cleaning.py::test_clean_transactions_null_invoice_no PASSED   [ 17%]
-tests/test_cloud_storage.py::test_to_parquet_bytes_roundtrip PASSED      [ 20%]
-tests/test_cloud_storage.py::test_to_parquet_bytes_columns_filter PASSED [ 22%]
-tests/test_cloud_storage.py::test_load_from_s3_csv_with_moto PASSED      [ 25%]
-tests/test_cloud_storage.py::test_load_from_s3_parquet_with_moto PASSED  [ 27%]
-tests/test_cloud_storage.py::test_upload_to_s3_parquet_and_csv_with_moto PASSED [ 30%]
-tests/test_cloud_storage.py::test_load_from_s3_nonexistent_key_moto PASSED [ 32%]
-tests/test_cloud_storage.py::test_local_mock_mode_load_and_upload PASSED [ 35%]
-tests/test_cloud_storage.py::test_load_from_s3_input_validation PASSED   [ 37%]
-tests/test_cloud_storage.py::test_upload_to_s3_input_validation PASSED   [ 40%]
-tests/test_clustering.py::test_preprocess_rfm PASSED                     [ 42%]
-tests/test_clustering.py::test_evaluate_clusters PASSED                  [ 45%]
-tests/test_clustering.py::test_run_kmeans_and_build_df PASSED            [ 47%]
-tests/test_clustering.py::test_evaluate_clusters_low_variance PASSED     [ 50%]
-tests/test_cohort.py::test_build_cohort_matrix PASSED                    [ 52%]
-tests/test_cohort.py::test_build_cohort_matrix_non_contiguous_months PASSED [ 55%]
-tests/test_docker_config.py::test_dockerfile_structure PASSED            [ 57%]
-tests/test_docker_config.py::test_docker_compose_structure PASSED        [ 60%]
-tests/test_docker_config.py::test_dockerignore_rules PASSED              [ 62%]
-tests/test_ingestion.py::test_load_csv_from_string_io PASSED             [ 65%]
-tests/test_ingestion.py::test_load_csv_empty_file PASSED                 [ 67%]
-tests/test_ingestion.py::test_load_csv_latin1_encoding PASSED            [ 70%]
-tests/test_ingestion.py::test_auto_map_columns_exact PASSED              [ 72%]
-tests/test_ingestion.py::test_auto_map_columns_fuzzy_and_aliases PASSED  [ 75%]
-tests/test_ingestion.py::test_validate_mapping PASSED                    [ 77%]
-tests/test_ingestion.py::test_validate_mapping_duplicate_columns PASSED  [ 80%]
-tests/test_ingestion.py::test_load_csv_from_string_io_object PASSED      [ 82%]
-tests/test_personas.py::test_label_segments_with_synthetic PASSED        [ 85%]
-tests/test_personas.py::test_label_segments_k10_unique_labels PASSED     [ 87%]
-tests/test_rfm.py::test_calculate_rfm_hand_calculated PASSED             [ 90%]
-tests/test_rfm.py::test_default_snapshot_date PASSED                     [ 92%]
+tests/test_cleaning.py::test_clean_transactions_remove_duplicates PASSED [  4%]
+tests/test_cleaning.py::test_detect_duplicates PASSED                    [  6%]
+tests/test_cleaning.py::test_clean_transactions_with_currency_strings PASSED [  8%]
+tests/test_cleaning.py::test_clean_transactions_with_accounting_negatives PASSED [ 10%]
+tests/test_cleaning.py::test_clean_id_normalizes_float_strings PASSED    [ 12%]
+tests/test_cleaning.py::test_clean_transactions_null_invoice_no PASSED   [ 14%]
+tests/test_cloud_storage.py::test_to_parquet_bytes_roundtrip PASSED      [ 16%]
+tests/test_cloud_storage.py::test_to_parquet_bytes_columns_filter PASSED [ 18%]
+tests/test_cloud_storage.py::test_load_from_s3_csv_with_moto PASSED      [ 20%]
+tests/test_cloud_storage.py::test_load_from_s3_parquet_with_moto PASSED  [ 22%]
+tests/test_cloud_storage.py::test_upload_to_s3_parquet_and_csv_with_moto PASSED [ 25%]
+tests/test_cloud_storage.py::test_load_from_s3_nonexistent_key_moto PASSED [ 27%]
+tests/test_cloud_storage.py::test_local_mock_mode_load_and_upload PASSED [ 29%]
+tests/test_cloud_storage.py::test_load_from_s3_input_validation PASSED   [ 31%]
+tests/test_cloud_storage.py::test_upload_to_s3_input_validation PASSED   [ 33%]
+tests/test_clustering.py::test_preprocess_rfm PASSED                     [ 35%]
+tests/test_clustering.py::test_evaluate_clusters PASSED                  [ 37%]
+tests/test_clustering.py::test_run_kmeans_and_build_df PASSED            [ 39%]
+tests/test_clustering.py::test_evaluate_clusters_low_variance PASSED     [ 41%]
+tests/test_cohort.py::test_build_cohort_matrix PASSED                    [ 43%]
+tests/test_cohort.py::test_build_cohort_matrix_non_contiguous_months PASSED [ 45%]
+tests/test_docker_config.py::test_dockerfile_structure PASSED            [ 47%]
+tests/test_docker_config.py::test_docker_compose_structure PASSED        [ 50%]
+tests/test_docker_config.py::test_dockerignore_rules PASSED              [ 52%]
+tests/test_ingestion.py::test_load_csv_from_string_io PASSED             [ 54%]
+tests/test_ingestion.py::test_load_csv_empty_file PASSED                 [ 56%]
+tests/test_ingestion.py::test_load_csv_latin1_encoding PASSED            [ 58%]
+tests/test_ingestion.py::test_auto_map_columns_exact PASSED              [ 60%]
+tests/test_ingestion.py::test_auto_map_columns_fuzzy_and_aliases PASSED  [ 62%]
+tests/test_ingestion.py::test_validate_mapping PASSED                    [ 64%]
+tests/test_ingestion.py::test_validate_mapping_duplicate_columns PASSED  [ 66%]
+tests/test_ingestion.py::test_load_csv_from_string_io_object PASSED      [ 68%]
+tests/test_model_registry.py::test_save_and_load_roundtrip PASSED        [ 70%]
+tests/test_model_registry.py::test_list_model_versions PASSED            [ 72%]
+tests/test_model_registry.py::test_predict_segment_single_record PASSED  [ 75%]
+tests/test_model_registry.py::test_predict_segment_dataframe PASSED      [ 77%]
+tests/test_model_registry.py::test_predict_segment_missing_features PASSED [ 79%]
+tests/test_model_registry.py::test_load_nonexistent_or_corrupt_artifact PASSED [ 81%]
+tests/test_model_registry.py::test_delete_model_version PASSED           [ 83%]
+tests/test_model_registry.py::test_save_model_type_validation PASSED     [ 85%]
+tests/test_personas.py::test_label_segments_with_synthetic PASSED        [ 87%]
+tests/test_personas.py::test_label_segments_k10_unique_labels PASSED     [ 89%]
+tests/test_rfm.py::test_calculate_rfm_hand_calculated PASSED             [ 91%]
+tests/test_rfm.py::test_default_snapshot_date PASSED                     [ 93%]
 tests/test_rfm.py::test_calculate_rfm_snapshot_in_past_error PASSED      [ 95%]
 tests/test_rfm.py::test_get_rfm_summary_stats PASSED                     [ 97%]
 tests/test_rfm.py::test_rfm_summary_scatter_zero_monetary PASSED         [100%]
 
-============================= 40 passed in 17.70s =============================
+============================= 48 passed in 13.63s =============================
 ```
 
 ---

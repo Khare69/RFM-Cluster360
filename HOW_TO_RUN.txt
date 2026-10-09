@@ -91,6 +91,7 @@ HOW TO USE THE WEBSITE (FEATURES ONCE OPEN)
    - 🗺️ 3. 3D Cluster Map: Interactive 3D customer space with rotatable view.
    - 👤 4. Customer Search: Individual customer purchase timeline & percentiles.
    - 📈 5. Cohort Retention: Monthly acquisition cohort retention heatmap.
+   - 🤖 6. Model Registry: Inspect artifact versions, cross-model comparison, and live inference.
 
 4. Export Results:
    - Download segmented customers as CSV or Apache Parquet (.parquet), or 
@@ -114,7 +115,7 @@ The containerized app will be available at:
 RUNNING THE AUTOMATED TESTS
 --------------------------------------------------------------------------------
 
-To run the complete 40-test automated unit test suite:
+To run the complete 48-test automated unit test suite:
     pytest -v
     or
     .\.venv\Scripts\pytest -v

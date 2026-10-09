@@ -21,6 +21,7 @@ from src.cloud_storage import is_mock_mode, load_from_s3
 from src.clustering import build_clustered_df, evaluate_clusters, preprocess_rfm, run_kmeans
 from src.cohort import build_cohort_matrix
 from src.ingestion import auto_map_columns, load_csv, validate_mapping
+from src.model_registry import save_model_artifact
 from src.personas import label_segments
 from src.rfm import calculate_rfm, default_snapshot_date
 
@@ -50,6 +51,9 @@ def init_session_state():
         "snapshot_date": None,
         "is_sample_data": False,
         "file_name": None,
+        "model_version": None,
+        "fitted_model": None,
+        "fitted_scaler": None,
     }
     for k, v in defaults.items():
         if k not in st.session_state:
@@ -87,18 +91,33 @@ def run_pipeline(
         rfm_df = calculate_rfm(clean_df, snapshot_date=snap_dt)
 
     with st.spinner("3/5 Normalizing distributions and evaluating optimal cluster count..."):
-        scaled_data, _, _ = preprocess_rfm(rfm_df)
+        scaled_data, scaler, feature_cols = preprocess_rfm(rfm_df)
         eval_metrics = evaluate_clusters(scaled_data)
         best_k = eval_metrics["best_k"]
         chosen_k = k_override if k_override is not None else best_k
 
     with st.spinner(f"4/5 Fitting K-Means with k={chosen_k} and applying persona labels..."):
-        labels, _, _ = run_kmeans(scaled_data, k=chosen_k)
+        labels, _, kmeans_model = run_kmeans(scaled_data, k=chosen_k)
         clustered_df = build_clustered_df(rfm_df, labels)
         labeled_df, cluster_map = label_segments(clustered_df)
 
     with st.spinner("5/5 Generating monthly cohort retention matrix..."):
         retention_matrix, counts_matrix = build_cohort_matrix(clean_df)
+
+    # Auto-save model artifact into MLOps registry
+    try:
+        saved_ver = save_model_artifact(
+            model=kmeans_model,
+            scaler=scaler,
+            cluster_map=cluster_map,
+            eval_metrics=eval_metrics,
+            feature_names=feature_cols,
+            customer_count=len(rfm_df),
+            notes=f"Auto-saved pipeline run (k={chosen_k})",
+        )
+        st.session_state.model_version = saved_ver
+    except Exception:
+        st.session_state.model_version = None
 
     # Persist in session state
     st.session_state.raw_df = raw_df
@@ -110,6 +129,8 @@ def run_pipeline(
     st.session_state.clustering_metrics = eval_metrics
     st.session_state.selected_k = chosen_k
     st.session_state.cluster_map = cluster_map
+    st.session_state.fitted_model = kmeans_model
+    st.session_state.fitted_scaler = scaler
     st.session_state.cohort_matrix = retention_matrix
     st.session_state.cohort_counts = counts_matrix
     st.session_state.snapshot_date = snap_dt
@@ -162,14 +183,29 @@ def main():
             st.sidebar.info(f"k is fixed at {min_k_val} for this dataset size")
         if new_k != curr_k:
             if st.sidebar.button("Apply New k", type="primary", use_container_width=True):
-                scaled_data, _, _ = preprocess_rfm(st.session_state.rfm_df)
-                labels, _, _ = run_kmeans(scaled_data, k=new_k)
+                scaled_data, scaler, feature_cols = preprocess_rfm(st.session_state.rfm_df)
+                labels, _, kmeans_model = run_kmeans(scaled_data, k=new_k)
                 clustered_df = build_clustered_df(st.session_state.rfm_df, labels)
                 labeled_df, cluster_map = label_segments(clustered_df)
                 st.session_state.clustered_df = clustered_df
                 st.session_state.labeled_df = labeled_df
                 st.session_state.selected_k = new_k
                 st.session_state.cluster_map = cluster_map
+                st.session_state.fitted_model = kmeans_model
+                st.session_state.fitted_scaler = scaler
+                try:
+                    saved_ver = save_model_artifact(
+                        model=kmeans_model,
+                        scaler=scaler,
+                        cluster_map=cluster_map,
+                        eval_metrics=st.session_state.clustering_metrics,
+                        feature_names=feature_cols,
+                        customer_count=len(st.session_state.rfm_df),
+                        notes=f"Re-clustered model artifact (k={new_k})",
+                    )
+                    st.session_state.model_version = saved_ver
+                except Exception:
+                    pass
                 st.rerun()
 
     # Main Page Title & Intro
@@ -343,11 +379,16 @@ def main():
         with col3:
             st.info("🗺️ **3. 3D Cluster Map**\n\nInteractive 3D customer space with rotatable camera controls.")
 
-        col4, col5, _ = st.columns(3)
+        col4, col5, col6 = st.columns(3)
         with col4:
             st.info("👤 **4. Customer Search**\n\nLook up individual customer profiles, purchase history timelines, and percentiles.")
         with col5:
             st.info("📈 **5. Cohort Retention**\n\nMonthly acquisition cohort retention heatmaps.")
+        with col6:
+            st.info("🤖 **6. Model Registry**\n\nMLOps artifact registry to inspect, version, reload, and run inference.")
+
+        if st.session_state.model_version:
+            st.caption(f"💾 **Active Model Artifact:** `{os.path.basename(st.session_state.model_version)}`")
 
         st.markdown("---")
         st.subheader("📋 Segmented Customers Preview")
