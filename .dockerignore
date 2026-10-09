@@ -35,5 +35,8 @@ implementation_plan.md
 rfm-project-mvp-spec.md
 HOW_TO_RUN.txt
 
+# MLOps Artifacts
+artifacts/
+
 # Logs
 *.log

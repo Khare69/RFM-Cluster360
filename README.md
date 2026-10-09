@@ -64,12 +64,13 @@ An enterprise-ready customer intelligence and segmentation platform that transfo
    - **Collision-Free Qualifiers:** Automatically appends ordinal qualifiers (e.g., `Needs Attention (Tier 2)`) when $k \ge 10$ to ensure every cluster retains a distinct label.
    - Actionable marketing recommendations and targeted campaign playbooks for each persona.
 
-8. **Interactive 5-View Analytics Dashboard**
+8. **Interactive 6-View Multipage Analytics & MLOps Platform**
    - **📊 Overview**: High-level KPIs, customer count/revenue distribution by segment, market treemaps, and zero-spend protected scatter plots.
    - **🔍 RFM Explorer**: Metric distribution histograms, percentile statistics, and Elbow & Silhouette model diagnostics.
    - **🗺️ 3D Cluster Map**: Fully rotatable 3D customer space with zoom, pan, and 2D cross-section projections.
    - **👤 Customer Search**: Look up individual accounts, benchmark rankings across the base, and purchase timelines.
    - **📈 Cohort Retention**: Monthly acquisition cohort retention heatmap with contiguous period reindexing and adaptive high-contrast font colors.
+   - **🤖 Model Registry**: MLOps artifact catalog to browse versions, compare silhouette scores/inertia curves, hot-swap deployed estimators, and run live customer inference.
 
 9. **Blazing-Fast Reactive Performance**
    - Computationally intensive operations (`load_csv`, `calculate_rfm`, `preprocess_rfm`, `evaluate_clusters`) are accelerated with `@st.cache_data`.
@@ -250,18 +251,23 @@ rfm-cluster360/
 
 ---
 
-## ☁️ AWS S3 & Cloud Storage Configuration
+## ☁️ Cloud Storage & Environment Configuration
 
-### Real AWS Credentials (`.env`)
+### Application & AWS Credentials (`.env`)
 
-To connect to live Amazon Web Services S3 buckets, add your credentials to `.env`:
+Configure live cloud connections and artifact storage paths in your local `.env`:
 
 ```bash
+# AWS S3 Cloud Storage Integration
 AWS_ACCESS_KEY_ID=your_access_key_here
 AWS_SECRET_ACCESS_KEY=your_secret_key_here
 AWS_DEFAULT_REGION=us-east-1
 AWS_S3_BUCKET=my-retail-datalake
 USE_LOCAL_MOCK=false
+MOCK_S3_DIR=data/mock_s3
+
+# MLOps Model Registry Persistence
+MODEL_REGISTRY_DIR=artifacts/models
 ```
 
 ### Zero-Config Offline Mock Mode (`USE_LOCAL_MOCK=true`)
@@ -410,6 +416,7 @@ docker run -d \
   --name rfm-cluster360-app \
   -p 8501:8501 \
   -v "${PWD}/data:/app/data" \
+  -v "${PWD}/artifacts:/app/artifacts" \
   --env-file .env \
   rfm-cluster360:latest
 

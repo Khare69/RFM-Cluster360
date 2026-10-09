@@ -55,7 +55,7 @@ COPY --from=builder /opt/venv /opt/venv
 
 # Create non-root application user for secure execution
 RUN useradd -m -u 1000 appuser && \
-    mkdir -p /app/data && \
+    mkdir -p /app/data /app/artifacts/models && \
     chown -R appuser:appuser /app
 
 # Copy application source code with non-root ownership

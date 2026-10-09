@@ -23,6 +23,8 @@ services:
     volumes:
       # Mount data directory for mock S3 persistence and dataset storage
       - ./data:/app/data
+      # Mount artifacts directory for MLOps model registry persistence
+      - ./artifacts:/app/artifacts
     healthcheck:
       test: ["CMD", "curl", "--fail", "http://localhost:8501/_stcore/health"]
       interval: 30s
