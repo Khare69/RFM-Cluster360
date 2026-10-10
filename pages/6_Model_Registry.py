@@ -372,25 +372,26 @@ with tab_inference:
 
             st.markdown(
                 f"""
-                <div style="background: {color}15; border: 2px solid {color}; border-radius: 12px; padding: 20px; margin-top: 10px;">
+                <div style="background: {color}18; border: 2px solid {color}; border-radius: 12px; padding: 20px; margin-top: 10px;">
                     <div style="display: flex; justify-content: space-between; align-items: center;">
                         <h2 style="color: {color}; margin: 0;">{assigned_label}</h2>
                         <span style="background: {color}; color: white; padding: 4px 12px; border-radius: 16px; font-weight: bold; font-size: 14px;">
                             Cluster #{assigned_cluster}
                         </span>
                     </div>
-                    <p style="margin-top: 12px; font-size: 15px; color: #333;">{meta.get('description', '')}</p>
+                    <p style="margin-top: 12px; font-size: 15px; color: inherit; opacity: 0.9;">{meta.get('description', '')}</p>
                     <hr style="border: 0; border-top: 1px solid {color}40; margin: 12px 0;">
-                    <h4 style="margin: 0 0 6px 0; color: #222;">Recommended Marketing Action:</h4>
-                    <p style="margin: 0; font-size: 14px; font-style: italic; color: #444;">🎯 {meta.get('action', '')}</p>
+                    <h4 style="margin: 0 0 6px 0; color: inherit; opacity: 0.95;">Recommended Marketing Action:</h4>
+                    <p style="margin: 0; font-size: 14px; font-style: italic; color: inherit; opacity: 0.85;">🎯 {meta.get('action', '')}</p>
                 </div>
                 """,
                 unsafe_allow_html=True,
             )
 
             st.markdown("##### Preprocessed Feature Scaling")
-            # Show scaled feature values
-            log_vals = np.log1p([res["recency"], res["frequency"], res["monetary"]]).reshape(1, -1)
+            # Show scaled feature values with defensive clipping
+            clipped_inputs = [max(0.0, float(res["recency"])), max(1.0, float(res["frequency"])), max(0.0, float(res["monetary"]))]
+            log_vals = np.log1p(clipped_inputs).reshape(1, -1)
             scaled_vals = active_s.transform(log_vals)[0]
             sf1, sf2, sf3 = st.columns(3)
             sf1.metric("Scaled Recency (z-score)", f"{scaled_vals[0]:.2f}")

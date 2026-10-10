@@ -70,9 +70,9 @@ def calculate_rfm(
         raise ValueError("Cannot calculate RFM on an empty DataFrame.")
 
     work_df = df.copy()
-    # Filter out null or blank invoice_no defensively
+    # Filter out null or blank invoice_no defensively (case-insensitive)
     if "invoice_no" in work_df.columns:
-        inv_valid = work_df["invoice_no"].notna() & (~work_df["invoice_no"].astype(str).str.strip().isin(["", "nan", "none", "null"]))
+        inv_valid = work_df["invoice_no"].notna() & (~work_df["invoice_no"].astype(str).str.strip().str.lower().isin(["", "nan", "none", "null", "0"]))
         work_df = work_df[inv_valid]
 
     # Normalize to tz-naive to prevent subtraction mismatches

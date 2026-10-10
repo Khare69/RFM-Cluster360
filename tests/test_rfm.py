@@ -84,3 +84,31 @@ def test_rfm_summary_scatter_zero_monetary():
     assert fig is not None
     assert len(fig.data) > 0
 
+
+def test_calculate_rfm_defensive_invoice_filtering():
+    """Verify calculate_rfm defensively ignores placeholder invoice values ('None', 'NULL', '0')."""
+    df = pd.DataFrame([
+        {"customer_id": "C1", "invoice_no": "101", "invoice_date": "2023-01-01", "quantity": 1, "unit_price": 50.0},
+        {"customer_id": "C1", "invoice_no": "None", "invoice_date": "2023-01-02", "quantity": 2, "unit_price": 50.0},
+        {"customer_id": "C1", "invoice_no": "0", "invoice_date": "2023-01-03", "quantity": 1, "unit_price": 50.0},
+    ])
+    rfm = calculate_rfm(df, snapshot_date="2023-01-10")
+    assert len(rfm) == 1
+    # Only valid order 101 should count
+    assert rfm.iloc[0]["frequency"] == 1
+    assert rfm.iloc[0]["monetary"] == 50.0
+
+
+def test_silhouette_plot_negative_scores():
+    """Verify silhouette_plot adjusts y-axis range properly when scores include negative values."""
+    from viz.rfm_charts import silhouette_plot
+
+    eval_results = {
+        "k_values": [2, 3, 4],
+        "silhouette_scores": [-0.15, -0.05, 0.20],
+        "best_k": 4,
+    }
+    fig = silhouette_plot(eval_results)
+    assert fig is not None
+    assert fig.layout.yaxis.range[0] < 0.0
+

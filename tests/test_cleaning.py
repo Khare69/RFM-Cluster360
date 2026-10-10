@@ -155,3 +155,25 @@ def test_clean_transactions_null_invoice_no():
     assert clean_df.iloc[0]["invoice_no"] == "101"
 
 
+def test_clean_transactions_case_insensitive_null_invoices():
+    """Verify that case-insensitive placeholders ('None', 'NULL', '0') are caught and filtered."""
+    data = [
+        {"CustomerID": "1001", "InvoiceNo": "INV-001", "InvoiceDate": "2023-01-01", "Quantity": "1", "UnitPrice": "10.00"},
+        {"CustomerID": "1001", "InvoiceNo": "None", "InvoiceDate": "2023-01-02", "Quantity": "2", "UnitPrice": "10.00"},
+        {"CustomerID": "1002", "InvoiceNo": "NULL", "InvoiceDate": "2023-01-03", "Quantity": "1", "UnitPrice": "20.00"},
+        {"CustomerID": "1002", "InvoiceNo": "0", "InvoiceDate": "2023-01-04", "Quantity": "1", "UnitPrice": "20.00"},
+    ]
+    df = pd.DataFrame(data)
+    mapping = {
+        "customer_id": "CustomerID",
+        "invoice_no": "InvoiceNo",
+        "invoice_date": "InvoiceDate",
+        "quantity": "Quantity",
+        "unit_price": "UnitPrice",
+    }
+    clean_df, report = clean_transactions(df, mapping)
+    assert report.rows_removed_missing_invoice == 3
+    assert report.total_rows_after == 1
+    assert clean_df.iloc[0]["invoice_no"] == "INV-001"
+
+

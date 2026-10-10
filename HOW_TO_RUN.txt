@@ -118,7 +118,7 @@ The containerized app will be available at:
 RUNNING THE AUTOMATED TESTS
 --------------------------------------------------------------------------------
 
-To run the complete 50-test automated unit test suite:
+To run the complete 53-test automated unit test suite:
     pytest -v
     or
     .\.venv\Scripts\pytest -v

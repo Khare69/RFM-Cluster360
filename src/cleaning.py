@@ -130,10 +130,10 @@ def clean_transactions(
     rows_cancelled = int(cancelled_mask.sum())
     work_df = work_df[~cancelled_mask]
 
-    # Step 4b: Handle null, empty, or placeholder invoice_no
+    # Step 4b: Handle null, empty, or placeholder invoice_no (case-insensitive)
     missing_invoice_mask = (
         work_df["invoice_no"].isna()
-        | (work_df["invoice_no_str"].isin(["", "nan", "none", "null"]))
+        | (work_df["invoice_no_str"].str.lower().isin(["", "nan", "none", "null", "0"]))
     )
     rows_missing_invoice = int(missing_invoice_mask.sum())
     work_df = work_df[~missing_invoice_mask].drop(columns=["invoice_no_str"])

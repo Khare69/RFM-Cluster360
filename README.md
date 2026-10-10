@@ -9,7 +9,7 @@
 [![Apache Parquet](https://img.shields.io/badge/Format-Apache%20Parquet-teal.svg)](https://parquet.apache.org/)
 [![Docker](https://img.shields.io/badge/Docker-Containerized-2496ED.svg?logo=docker&logoColor=white)](Dockerfile)
 [![MLOps](https://img.shields.io/badge/MLOps-Model%20Registry-blueviolet.svg)](#-mlops-model-artifact-registry)
-[![Tests](https://img.shields.io/badge/Tests-50%20Passed-brightgreen.svg)](#-running-the-test-suite)
+[![Tests](https://img.shields.io/badge/Tests-53%20Passed-brightgreen.svg)](#-running-the-test-suite)
 [![License](https://img.shields.io/badge/License-Apache_2.0-green.svg)](LICENSE)
 
 An enterprise-ready customer intelligence and segmentation platform that transforms raw retail transaction exports into actionable customer personas using **Recency, Frequency, and Monetary (RFM)** modeling and **Unsupervised Machine Learning (K-Means Clustering)**.
@@ -180,6 +180,7 @@ rfm-cluster360/
 ├── docker-compose.yml              # Local container orchestration, volume persistence & health checks
 ├── .dockerignore                   # Build exclusion rules for lean, secure container images
 ├── HOW_TO_RUN.txt                  # Quick launch terminal commands and setup guide
+├── pytest.ini                      # Pytest suite configuration and warning suppression
 ├── requirements.txt                # Pinned production dependencies (lean container image)
 ├── requirements-dev.txt            # Development & test-only dependencies (pytest, moto)
 ├── .env.example                    # Template for AWS S3 and application environment variables
@@ -237,7 +238,7 @@ rfm-cluster360/
 │   ├── customer_timeline.py        # Individual customer timeline & percentile ranking
 │   └── cohort_heatmap.py           # Annotated cohort retention heatmap with adaptive text contrast
 │
-└── tests/                          # Automated Pytest Suite (50 Passed)
+└── tests/                          # Automated Pytest Suite (53 Passed)
     ├── conftest.py                 # Hand-calculated transaction fixtures & synthetic base
     ├── test_ci_config.py           # GitHub Actions workflow syntax & requirements split verification
     ├── test_ingestion.py           # Encodings, empty files, fuzzy mapping, duplicate detection, StringIO
@@ -497,18 +498,21 @@ pytest tests/ -v
 
 ```text
 ============================= test session starts =============================
-platform win32 -- Python 3.14.7, pytest-9.1.1
-collected 50 items
+platform win32 -- Python 3.14.7, pytest-9.1.1, pluggy-1.6.0
+configfile: pytest.ini
+testpaths: tests
+collected 53 items
 
-tests/test_ci_config.py::test_ci_workflow_structure PASSED               [  2%]
-tests/test_ci_config.py::test_requirements_split PASSED                  [  4%]
-tests/test_cleaning.py::test_clean_transactions PASSED                   [  6%]
-tests/test_cleaning.py::test_clean_transactions_remove_duplicates PASSED [  8%]
-tests/test_cleaning.py::test_detect_duplicates PASSED                    [ 10%]
-tests/test_cleaning.py::test_clean_transactions_with_currency_strings PASSED [ 12%]
-tests/test_cleaning.py::test_clean_transactions_with_accounting_negatives PASSED [ 14%]
-tests/test_cleaning.py::test_clean_id_normalizes_float_strings PASSED    [ 16%]
-tests/test_cleaning.py::test_clean_transactions_null_invoice_no PASSED   [ 18%]
+tests/test_ci_config.py::test_ci_workflow_structure PASSED               [  1%]
+tests/test_ci_config.py::test_requirements_split PASSED                  [  3%]
+tests/test_cleaning.py::test_clean_transactions PASSED                   [  5%]
+tests/test_cleaning.py::test_clean_transactions_remove_duplicates PASSED [  7%]
+tests/test_cleaning.py::test_detect_duplicates PASSED                    [  9%]
+tests/test_cleaning.py::test_clean_transactions_with_currency_strings PASSED [ 11%]
+tests/test_cleaning.py::test_clean_transactions_with_accounting_negatives PASSED [ 13%]
+tests/test_cleaning.py::test_clean_id_normalizes_float_strings PASSED    [ 15%]
+tests/test_cleaning.py::test_clean_transactions_null_invoice_no PASSED   [ 16%]
+tests/test_cleaning.py::test_clean_transactions_case_insensitive_null_invoices PASSED [ 18%]
 tests/test_cloud_storage.py::test_to_parquet_bytes_roundtrip PASSED      [ 20%]
 tests/test_cloud_storage.py::test_to_parquet_bytes_columns_filter PASSED [ 22%]
 tests/test_cloud_storage.py::test_load_from_s3_csv_with_moto PASSED      [ 24%]
@@ -516,42 +520,44 @@ tests/test_cloud_storage.py::test_load_from_s3_parquet_with_moto PASSED  [ 26%]
 tests/test_cloud_storage.py::test_upload_to_s3_parquet_and_csv_with_moto PASSED [ 28%]
 tests/test_cloud_storage.py::test_load_from_s3_nonexistent_key_moto PASSED [ 30%]
 tests/test_cloud_storage.py::test_local_mock_mode_load_and_upload PASSED [ 32%]
-tests/test_cloud_storage.py::test_load_from_s3_input_validation PASSED   [ 34%]
-tests/test_cloud_storage.py::test_upload_to_s3_input_validation PASSED   [ 36%]
-tests/test_clustering.py::test_preprocess_rfm PASSED                     [ 38%]
-tests/test_clustering.py::test_evaluate_clusters PASSED                  [ 40%]
-tests/test_clustering.py::test_run_kmeans_and_build_df PASSED            [ 42%]
-tests/test_clustering.py::test_evaluate_clusters_low_variance PASSED     [ 44%]
-tests/test_cohort.py::test_build_cohort_matrix PASSED                    [ 46%]
-tests/test_cohort.py::test_build_cohort_matrix_non_contiguous_months PASSED [ 48%]
-tests/test_docker_config.py::test_dockerfile_structure PASSED            [ 50%]
-tests/test_docker_config.py::test_docker_compose_structure PASSED        [ 52%]
-tests/test_docker_config.py::test_dockerignore_rules PASSED              [ 54%]
-tests/test_ingestion.py::test_load_csv_from_string_io PASSED             [ 56%]
-tests/test_ingestion.py::test_load_csv_empty_file PASSED                 [ 58%]
-tests/test_ingestion.py::test_load_csv_latin1_encoding PASSED            [ 60%]
-tests/test_ingestion.py::test_auto_map_columns_exact PASSED              [ 62%]
-tests/test_ingestion.py::test_auto_map_columns_fuzzy_and_aliases PASSED  [ 64%]
-tests/test_ingestion.py::test_validate_mapping PASSED                    [ 66%]
-tests/test_ingestion.py::test_validate_mapping_duplicate_columns PASSED  [ 68%]
-tests/test_ingestion.py::test_load_csv_from_string_io_object PASSED      [ 70%]
-tests/test_model_registry.py::test_save_and_load_roundtrip PASSED        [ 72%]
-tests/test_model_registry.py::test_list_model_versions PASSED            [ 74%]
-tests/test_model_registry.py::test_predict_segment_single_record PASSED  [ 76%]
-tests/test_model_registry.py::test_predict_segment_dataframe PASSED      [ 78%]
-tests/test_model_registry.py::test_predict_segment_missing_features PASSED [ 80%]
-tests/test_model_registry.py::test_load_nonexistent_or_corrupt_artifact PASSED [ 82%]
-tests/test_model_registry.py::test_delete_model_version PASSED           [ 84%]
-tests/test_model_registry.py::test_save_model_type_validation PASSED     [ 86%]
-tests/test_personas.py::test_label_segments_with_synthetic PASSED        [ 88%]
-tests/test_personas.py::test_label_segments_k10_unique_labels PASSED     [ 90%]
-tests/test_rfm.py::test_calculate_rfm_hand_calculated PASSED             [ 92%]
-tests/test_rfm.py::test_default_snapshot_date PASSED                     [ 94%]
-tests/test_rfm.py::test_calculate_rfm_snapshot_in_past_error PASSED      [ 96%]
-tests/test_rfm.py::test_get_rfm_summary_stats PASSED                     [ 98%]
-tests/test_rfm.py::test_rfm_summary_scatter_zero_monetary PASSED         [100%]
+tests/test_cloud_storage.py::test_load_from_s3_input_validation PASSED   [ 33%]
+tests/test_cloud_storage.py::test_upload_to_s3_input_validation PASSED   [ 35%]
+tests/test_clustering.py::test_preprocess_rfm PASSED                     [ 37%]
+tests/test_clustering.py::test_evaluate_clusters PASSED                  [ 39%]
+tests/test_clustering.py::test_run_kmeans_and_build_df PASSED            [ 41%]
+tests/test_clustering.py::test_evaluate_clusters_low_variance PASSED     [ 43%]
+tests/test_cohort.py::test_build_cohort_matrix PASSED                    [ 45%]
+tests/test_cohort.py::test_build_cohort_matrix_non_contiguous_months PASSED [ 47%]
+tests/test_docker_config.py::test_dockerfile_structure PASSED            [ 49%]
+tests/test_docker_config.py::test_docker_compose_structure PASSED        [ 50%]
+tests/test_docker_config.py::test_dockerignore_rules PASSED              [ 52%]
+tests/test_ingestion.py::test_load_csv_from_string_io PASSED             [ 54%]
+tests/test_ingestion.py::test_load_csv_empty_file PASSED                 [ 56%]
+tests/test_ingestion.py::test_load_csv_latin1_encoding PASSED            [ 58%]
+tests/test_ingestion.py::test_auto_map_columns_exact PASSED              [ 60%]
+tests/test_ingestion.py::test_auto_map_columns_fuzzy_and_aliases PASSED  [ 62%]
+tests/test_ingestion.py::test_validate_mapping PASSED                    [ 64%]
+tests/test_ingestion.py::test_validate_mapping_duplicate_columns PASSED  [ 66%]
+tests/test_ingestion.py::test_load_csv_from_string_io_object PASSED      [ 67%]
+tests/test_model_registry.py::test_save_and_load_roundtrip PASSED        [ 69%]
+tests/test_model_registry.py::test_list_model_versions PASSED            [ 71%]
+tests/test_model_registry.py::test_predict_segment_single_record PASSED  [ 73%]
+tests/test_model_registry.py::test_predict_segment_dataframe PASSED      [ 75%]
+tests/test_model_registry.py::test_predict_segment_missing_features PASSED [ 77%]
+tests/test_model_registry.py::test_load_nonexistent_or_corrupt_artifact PASSED [ 79%]
+tests/test_model_registry.py::test_delete_model_version PASSED           [ 81%]
+tests/test_model_registry.py::test_save_model_type_validation PASSED     [ 83%]
+tests/test_personas.py::test_label_segments_with_synthetic PASSED        [ 84%]
+tests/test_personas.py::test_label_segments_k10_unique_labels PASSED     [ 86%]
+tests/test_rfm.py::test_calculate_rfm_hand_calculated PASSED             [ 88%]
+tests/test_rfm.py::test_default_snapshot_date PASSED                     [ 90%]
+tests/test_rfm.py::test_calculate_rfm_snapshot_in_past_error PASSED      [ 92%]
+tests/test_rfm.py::test_get_rfm_summary_stats PASSED                     [ 94%]
+tests/test_rfm.py::test_rfm_summary_scatter_zero_monetary PASSED         [ 96%]
+tests/test_rfm.py::test_calculate_rfm_defensive_invoice_filtering PASSED [ 98%]
+tests/test_rfm.py::test_silhouette_plot_negative_scores PASSED           [100%]
 
-============================== 50 passed in 15.64s ==============================
+============================= 53 passed in 17.96s =============================
 ```
 
 ---

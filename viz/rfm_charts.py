@@ -117,7 +117,7 @@ def elbow_curve(eval_results: Dict[str, Any]) -> go.Figure:
 
     fig.update_layout(
         title="Elbow Method (Within-Cluster Sum of Squares)",
-        xaxis=dict(title="Number of Clusters (k)", tickmode="linear", tick0=min(k_vals), dtick=1),
+        xaxis=dict(title="Number of Clusters (k)", tickmode="linear", tick0=min(k_vals) if k_vals else 2, dtick=1),
         yaxis=dict(title="Inertia (Compactness)"),
         margin=dict(l=20, r=20, t=50, b=20),
         plot_bgcolor="rgba(0,0,0,0)",
@@ -163,10 +163,15 @@ def silhouette_plot(eval_results: Dict[str, Any]) -> go.Figure:
             )
         )
 
+    min_score = min(scores) if scores else 0.0
+    max_score = max(scores) if scores else 1.0
+    y_min = min(0.0, min_score * 1.15 if min_score < 0 else 0.0)
+    y_max = max_score * 1.25 if max_score > 0 else 1.0
+
     fig.update_layout(
         title="Silhouette Score (Cluster Separation Quality)",
-        xaxis=dict(title="Number of Clusters (k)", tickmode="linear", tick0=min(k_vals), dtick=1),
-        yaxis=dict(title="Average Silhouette Score (Higher is Better)", range=[0, max(scores) * 1.25 if max(scores) > 0 else 1.0]),
+        xaxis=dict(title="Number of Clusters (k)", tickmode="linear", tick0=min(k_vals) if k_vals else 2, dtick=1),
+        yaxis=dict(title="Average Silhouette Score (Higher is Better)", range=[y_min, y_max]),
         margin=dict(l=20, r=20, t=50, b=20),
         plot_bgcolor="rgba(0,0,0,0)",
         paper_bgcolor="rgba(0,0,0,0)",
