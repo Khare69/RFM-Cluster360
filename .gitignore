@@ -51,3 +51,7 @@ rfm-project-mvp-spec.md
 # MLOps Artifacts
 artifacts/models/
 *.joblib
+
+# Reviews
+RFM-Cluster360-Review 1.md
+RFM-Cluster360-Review 2.md
