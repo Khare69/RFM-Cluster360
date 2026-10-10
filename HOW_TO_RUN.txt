@@ -51,9 +51,12 @@ Step 2: Activate the virtual environment
 
 Step 3: (Optional) Verify or install dependencies
 -------------------------------------------------
-To ensure all required libraries (Streamlit, Pandas, Scikit-Learn, Plotly, 
-Boto3, PyArrow) are installed:
+To ensure all production libraries (Streamlit, Pandas, Scikit-Learn, Plotly, 
+Boto3, PyArrow, Joblib) are installed:
     pip install -r requirements.txt
+
+For local unit testing and development utilities (Pytest, Moto):
+    pip install -r requirements-dev.txt
 
 
 Step 4: Launch the Streamlit web application
@@ -115,7 +118,7 @@ The containerized app will be available at:
 RUNNING THE AUTOMATED TESTS
 --------------------------------------------------------------------------------
 
-To run the complete 48-test automated unit test suite:
+To run the complete 50-test automated unit test suite:
     pytest -v
     or
     .\.venv\Scripts\pytest -v
