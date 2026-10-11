@@ -10,9 +10,12 @@
 [![Docker](https://img.shields.io/badge/Docker-Containerized-2496ED.svg?logo=docker&logoColor=white)](Dockerfile)
 [![MLOps](https://img.shields.io/badge/MLOps-Model%20Registry-blueviolet.svg)](#-mlops-model-artifact-registry)
 [![Tests](https://img.shields.io/badge/Tests-59%20Passed-brightgreen.svg)](#-running-the-test-suite)
+[![Report](https://img.shields.io/badge/Report-Project%20Progress%20%26%20Bugs-informational.svg)](PROJECT_PROGRESS_REPORT.md)
 [![License](https://img.shields.io/badge/License-Apache_2.0-green.svg)](LICENSE)
 
 An enterprise-ready customer intelligence and segmentation platform that transforms raw retail transaction exports into actionable customer personas using **Recency, Frequency, and Monetary (RFM)** modeling and **Unsupervised Machine Learning (K-Means Clustering)**.
+
+> 📘 **Full Engineering History & Bug Report:** For an itemized catalog of all bugs encountered, technical root causes, fixes, MLOps architecture shifts, and phase milestones, refer to the [Project Progress & Engineering Report](PROJECT_PROGRESS_REPORT.md).
 
 
 ---
@@ -188,6 +191,7 @@ rfm-cluster360/
 ├── .env.example                    # Template for AWS S3 and application environment variables
 ├── .gitignore
 ├── README.md
+├── PROJECT_PROGRESS_REPORT.md      # Comprehensive engineering progress, bug catalog, fixes & roadmap report
 ├── LICENSE                         # Apache 2.0 License
 ├── pyrightconfig.json              # Python static type checking configuration
 │
@@ -240,7 +244,7 @@ rfm-cluster360/
 │   ├── customer_timeline.py        # Individual customer timeline & percentile ranking
 │   └── cohort_heatmap.py           # Annotated cohort retention heatmap with adaptive text contrast
 │
-└── tests/                          # Automated Pytest Suite (53 Passed)
+└── tests/                          # Automated Pytest Suite (59 Passed)
     ├── conftest.py                 # Hand-calculated transaction fixtures & synthetic base
     ├── test_ci_config.py           # GitHub Actions workflow syntax & requirements split verification
     ├── test_ingestion.py           # Encodings, empty files, fuzzy mapping, duplicate detection, StringIO
@@ -269,6 +273,10 @@ rfm-cluster360/
 | **6** | **Containerization** | Multi-stage production `Dockerfile`, `docker-compose`, health checks, non-root security | ✅ Complete |
 | **7** | **MLOps Registry** | Joblib/JSON model artifact serialization, version registry, hot-swapping & live inference | ✅ Complete |
 | **8** | **CI/CD Pipeline** | GitHub Actions workflow for linting, pytest matrix, container builds, status badge | ✅ Complete |
+| **9** | **Security & Data Integrity** | Mock S3 path traversal containment, S3 size limit, leading zeros, live classifier fix | ✅ Complete |
+| **10** | **Analytical Correctness** | Pre-scaling variance guard, rule-based persona thresholds, net returns cleaning policy | 📋 Planned |
+| **11** | **Architectural Decoupling** | Headless core library without Streamlit dependencies, unified sklearn pipeline | 📋 Planned |
+| **12** | **Production Validation** | Ruff linting, Pyright typing in CI, container build test, baseline quintile benchmarking | 📋 Planned |
 
 ---
 
