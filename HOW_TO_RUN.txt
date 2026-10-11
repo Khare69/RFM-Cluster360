@@ -31,7 +31,7 @@ STEP-BY-STEP INSTRUCTIONS (FIRST TIME SETUP)
 Step 1: Open a terminal in this project folder
 ---------------------------------------------
 Ensure your current directory is the root of the project:
-  c:\Users\parth\OneDrive\Desktop\personal projects\rfm cluster360
+  cd path/to/rfm-cluster360
 
 
 Step 2: Activate the virtual environment

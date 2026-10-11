@@ -60,7 +60,7 @@ Over the course of 10 structured engineering iterations (**Phases 0 through 9**)
 - **Deliverables:**
   - Initialized git repository and configured strict `.gitignore` (`.env`, `.venv/`, `__pycache__/`, `.pytest_cache/`, `artifacts/models/`).
   - Created remote GitHub repository: `Khare69/RFM-Cluster360`.
-  - Authored comprehensive [`README.md`](file:///c:/Users/parth/OneDrive/Desktop/personal%20projects/rfm%20cluster360/README.md) featuring architectural diagrams, component breakdown, and quick-start guides.
+  - Authored comprehensive [`README.md`](README.md) featuring architectural diagrams, component breakdown, and quick-start guides.
   - Added formal Apache 2.0 open-source license.
 - **Git Commit:** `1c6286b` (*feat: initial codebase — RFM Cluster360 MVP with Streamlit dashboard*)
 
@@ -102,27 +102,27 @@ Over the course of 10 structured engineering iterations (**Phases 0 through 9**)
 ### Phase 5 — Cloud Storage & Apache Parquet Serialization
 - **Objective:** Extend ingestion and export capabilities to enterprise cloud environments.
 - **Deliverables:**
-  - Implemented [`src/cloud_storage.py`](file:///c:/Users/parth/OneDrive/Desktop/personal%20projects/rfm%20cluster360/src/cloud_storage.py) supporting AWS S3 bucket download and upload using `boto3`.
+  - Implemented [`src/cloud_storage.py`](src/cloud_storage.py) supporting AWS S3 bucket download and upload using `boto3`.
   - Engineered an offline local filesystem mock sandbox (`data/mock_s3/{bucket}/{key}`) with automated fallback, allowing end-to-end cloud feature testing without live AWS credentials or cloud costs.
-  - Built Apache Parquet binary export in [`src/export.py`](file:///c:/Users/parth/OneDrive/Desktop/personal%20projects/rfm%20cluster360/src/export.py) using `pyarrow` with Snappy compression, reducing export file sizes and accelerating column-oriented analytics.
+  - Built Apache Parquet binary export in [`src/export.py`](src/export.py) using `pyarrow` with Snappy compression, reducing export file sizes and accelerating column-oriented analytics.
   - Added dedicated S3 ingestion UI tab in `app.py` and Parquet export format toggles.
 - **Git Commit:** `ecb7a31` (*feat: cloud storage — S3 bucket ingestion/export with local mock mode + Apache Parquet support*)
 
 ### Phase 6 — Production Docker Containerization
 - **Objective:** Package the entire stack into a deterministic, portable container environment.
 - **Deliverables:**
-  - Authored a multi-stage [`Dockerfile`](file:///c:/Users/parth/OneDrive/Desktop/personal%20projects/rfm%20cluster360/Dockerfile) using `python:3.11-slim`, separating build-tool compilation from runtime execution.
+  - Authored a multi-stage [`Dockerfile`](Dockerfile) using `python:3.11-slim`, separating build-tool compilation from runtime execution.
   - Enforced unprivileged security execution by creating and switching to `appuser` (UID 1000).
   - Integrated native Streamlit health checking (`HEALTHCHECK CMD curl --fail http://localhost:8501/_stcore/health || exit 1`).
-  - Authored [`docker-compose.yml`](file:///c:/Users/parth/OneDrive/Desktop/personal%20projects/rfm%20cluster360/docker-compose.yml) with environment variable propagation and persistent host data mounting.
-  - Created [`.dockerignore`](file:///c:/Users/parth/OneDrive/Desktop/personal%20projects/rfm%20cluster360/.dockerignore) to prevent image bloat.
+  - Authored [`docker-compose.yml`](docker-compose.yml) with environment variable propagation and persistent host data mounting.
+  - Created [`.dockerignore`](.dockerignore) to prevent image bloat.
 - **Git Commit:** `bcca471` (*feat: Docker containerization — multi-stage Dockerfile, compose config, and health checks*)
 
 ### Phase 7 — MLOps Model Artifact Registry
 - **Objective:** Enable model lifecycle tracking, serialization, and real-time inference.
 - **Deliverables:**
-  - Built [`src/model_registry.py`](file:///c:/Users/parth/OneDrive/Desktop/personal%20projects/rfm%20cluster360/src/model_registry.py) to persist trained `KMeans` models, `StandardScaler` instances, and cluster persona mappings with timestamped JSON metadata.
-  - Created [`pages/6_Model_Registry.py`](file:///c:/Users/parth/OneDrive/Desktop/personal%20projects/rfm%20cluster360/pages/6_Model_Registry.py) providing:
+  - Built [`src/model_registry.py`](src/model_registry.py) to persist trained `KMeans` models, `StandardScaler` instances, and cluster persona mappings with timestamped JSON metadata.
+  - Created [`pages/6_Model_Registry.py`](pages/6_Model_Registry.py) providing:
     - Version history catalog with metric badges (Silhouette, Inertia, $k$).
     - Side-by-side model comparison tables and silhouette performance charts.
     - One-click model restoration into active session state.
@@ -133,10 +133,10 @@ Over the course of 10 structured engineering iterations (**Phases 0 through 9**)
 ### Phase 8 — GitHub Actions CI/CD Pipeline
 - **Objective:** Implement continuous testing and decouple production dependencies from dev tooling.
 - **Deliverables:**
-  - Engineered [`.github/workflows/ci.yml`](file:///c:/Users/parth/OneDrive/Desktop/personal%20projects/rfm%20cluster360/.github/workflows/ci.yml) triggering on every push and PR to `main`.
-  - Split dependencies: stripped testing frameworks from [`requirements.txt`](file:///c:/Users/parth/OneDrive/Desktop/personal%20projects/rfm%20cluster360/requirements.txt) and established [`requirements-dev.txt`](file:///c:/Users/parth/OneDrive/Desktop/personal%20projects/rfm%20cluster360/requirements-dev.txt) for `pytest` and `moto`.
-  - Added automated CI build status badge to [`README.md`](file:///c:/Users/parth/OneDrive/Desktop/personal%20projects/rfm%20cluster360/README.md).
-  - Created [`tests/test_ci_config.py`](file:///c:/Users/parth/OneDrive/Desktop/personal%20projects/rfm%20cluster360/tests/test_ci_config.py) to validate workflow YAML syntax and dependency integrity.
+  - Engineered [`.github/workflows/ci.yml`](.github/workflows/ci.yml) triggering on every push and PR to `main`.
+  - Split dependencies: stripped testing frameworks from [`requirements.txt`](requirements.txt) and established [`requirements-dev.txt`](requirements-dev.txt) for `pytest` and `moto`.
+  - Added automated CI build status badge to [`README.md`](README.md).
+  - Created [`tests/test_ci_config.py`](tests/test_ci_config.py) to validate workflow YAML syntax and dependency integrity.
 - **Git Commit:** `a3e4e5c` (*ci: GitHub Actions CI/CD pipeline with automated pytest on push/PR + status badge*)
 
 ### Phase 9 — Security Hardening & Critical Data Integrity Fixes
@@ -176,7 +176,7 @@ Over the course of 10 structured engineering iterations (**Phases 0 through 9**)
   if duplicates:
       return False, f"Duplicate column mapping detected: {set(duplicates)}"
   ```
-- **Verification:** [`tests/test_ingestion.py:test_validate_mapping_duplicate_columns`](file:///c:/Users/parth/OneDrive/Desktop/personal%20projects/rfm%20cluster360/tests/test_ingestion.py).
+- **Verification:** [`tests/test_ingestion.py:test_validate_mapping_duplicate_columns`](tests/test_ingestion.py).
 
 #### Bug 1.3: `TypeError` when Passing `io.StringIO` to `load_csv()`
 - **Location:** `src/ingestion.py` (`load_csv()`)
@@ -188,7 +188,7 @@ Over the course of 10 structured engineering iterations (**Phases 0 through 9**)
   if isinstance(raw_bytes, str):
       raw_bytes = raw_bytes.encode("utf-8")
   ```
-- **Verification:** [`tests/test_ingestion.py:test_load_csv_from_string_io_object`](file:///c:/Users/parth/OneDrive/Desktop/personal%20projects/rfm%20cluster360/tests/test_ingestion.py).
+- **Verification:** [`tests/test_ingestion.py:test_load_csv_from_string_io_object`](tests/test_ingestion.py).
 
 #### Bug 1.4: Sidebar $k$-Slider Crash on Small Datasets
 - **Location:** `app.py`
@@ -211,7 +211,7 @@ Over the course of 10 structured engineering iterations (**Phases 0 through 9**)
   ```python
   active_k = st.session_state.get("selected_k", getattr(loaded_model, "n_clusters", 4))
   ```
-- **Verification:** Streamlit `AppTest` smoke test in [`tests/test_model_registry.py`](file:///c:/Users/parth/OneDrive/Desktop/personal%20projects/rfm%20cluster360/tests/test_model_registry.py).
+- **Verification:** Streamlit `AppTest` smoke test in [`tests/test_model_registry.py`](tests/test_model_registry.py).
 
 ---
 
@@ -225,7 +225,7 @@ Over the course of 10 structured engineering iterations (**Phases 0 through 9**)
   ```python
   s = s.str.replace(r"^\s*\((.*)\)\s*$", r"-\1", regex=True)
   ```
-- **Verification:** [`tests/test_cleaning.py:test_clean_transactions_with_accounting_negatives`](file:///c:/Users/parth/OneDrive/Desktop/personal%20projects/rfm%20cluster360/tests/test_cleaning.py).
+- **Verification:** [`tests/test_cleaning.py:test_clean_transactions_with_accounting_negatives`](tests/test_cleaning.py).
 
 #### Bug 2.2: Float-String Normalization Splitting Customer Records
 - **Location:** `src/cleaning.py` (`_clean_id()`)
@@ -240,7 +240,7 @@ Over the course of 10 structured engineering iterations (**Phases 0 through 9**)
   except (ValueError, TypeError):
       pass
   ```
-- **Verification:** [`tests/test_cleaning.py:test_clean_id_normalizes_float_strings`](file:///c:/Users/parth/OneDrive/Desktop/personal%20projects/rfm%20cluster360/tests/test_cleaning.py).
+- **Verification:** [`tests/test_cleaning.py:test_clean_id_normalizes_float_strings`](tests/test_cleaning.py).
 
 #### Bug 2.3: Null and Empty `invoice_no` Creating Phantom Customers
 - **Location:** `src/cleaning.py`, `src/rfm.py`
@@ -255,7 +255,7 @@ Over the course of 10 structured engineering iterations (**Phases 0 through 9**)
   )
   df = df[valid_invoice_mask]
   ```
-- **Verification:** [`tests/test_cleaning.py:test_clean_transactions_null_invoice_no`](file:///c:/Users/parth/OneDrive/Desktop/personal%20projects/rfm%20cluster360/tests/test_cleaning.py).
+- **Verification:** [`tests/test_cleaning.py:test_clean_transactions_null_invoice_no`](tests/test_cleaning.py).
 
 #### Bug 2.4: Truncation of Customer IDs with Leading Zeros
 - **Location:** `src/ingestion.py`, `src/cleaning.py`
@@ -269,7 +269,7 @@ Over the course of 10 structured engineering iterations (**Phases 0 through 9**)
          s = s[:-2]
      return s
      ```
-- **Verification:** [`tests/test_cleaning.py:test_clean_id_preserves_leading_zeros`](file:///c:/Users/parth/OneDrive/Desktop/personal%20projects/rfm%20cluster360/tests/test_cleaning.py).
+- **Verification:** [`tests/test_cleaning.py:test_clean_id_preserves_leading_zeros`](tests/test_cleaning.py).
 
 ---
 
@@ -282,7 +282,7 @@ Over the course of 10 structured engineering iterations (**Phases 0 through 9**)
 - **Resolution:** Replaced min-max scaling with a deterministic **weighted composite score**:
   $$\text{Composite Score} = 0.35 \times R_{\text{inv\_pct}} + 0.35 \times F_{\text{pct}} + 0.30 \times M_{\text{pct}}$$
   Clusters are ranked from highest to lowest composite score and assigned personas in descending business order (*Champions* $\to$ *Loyal* $\to$ *Potential Loyalists* $\to$ *At Risk* $\to$ *Lost*).
-- **Verification:** [`tests/test_personas.py`](file:///c:/Users/parth/OneDrive/Desktop/personal%20projects/rfm%20cluster360/tests/test_personas.py).
+- **Verification:** [`tests/test_personas.py`](tests/test_personas.py).
 
 #### Bug 3.2: Persona Label Collisions for $k \ge 5$
 - **Location:** `src/personas.py`
@@ -294,7 +294,7 @@ Over the course of 10 structured engineering iterations (**Phases 0 through 9**)
       label = f"{label} (Tier {tier_counts[label]})"
   assigned_labels.add(label)
   ```
-- **Verification:** [`tests/test_personas.py:test_generate_cluster_label_mapping_unique_for_k10`](file:///c:/Users/parth/OneDrive/Desktop/personal%20projects/rfm%20cluster360/tests/test_personas.py).
+- **Verification:** [`tests/test_personas.py:test_generate_cluster_label_mapping_unique_for_k10`](tests/test_personas.py).
 
 #### Bug 3.3: Clustering Hangs and Warnings on Low-Variance Data
 - **Location:** `src/clustering.py` (`evaluate_clusters()`)
@@ -309,7 +309,7 @@ Over the course of 10 structured engineering iterations (**Phases 0 through 9**)
           "silhouette_scores": {2: 0.0}
       }
   ```
-- **Verification:** [`tests/test_clustering.py:test_evaluate_clusters_low_variance`](file:///c:/Users/parth/OneDrive/Desktop/personal%20projects/rfm%20cluster360/tests/test_clustering.py).
+- **Verification:** [`tests/test_clustering.py:test_evaluate_clusters_low_variance`](tests/test_clustering.py).
 
 ---
 
@@ -325,7 +325,7 @@ Over the course of 10 structured engineering iterations (**Phases 0 through 9**)
   if not resolved_path.is_relative_to(mock_dir.resolve()):
       raise ValueError(f"Path traversal detected: {key} escapes mock storage directory.")
   ```
-- **Verification:** [`tests/test_cloud_storage.py:test_get_mock_s3_path_traversal_prevention`](file:///c:/Users/parth/OneDrive/Desktop/personal%20projects/rfm%20cluster360/tests/test_cloud_storage.py).
+- **Verification:** [`tests/test_cloud_storage.py:test_get_mock_s3_path_traversal_prevention`](tests/test_cloud_storage.py).
 
 #### Vulnerability 4.2: Unbounded S3 Download Memory Consumption (OOM)
 - **Location:** `src/cloud_storage.py` (`load_from_s3()`)
@@ -337,7 +337,7 @@ Over the course of 10 structured engineering iterations (**Phases 0 through 9**)
   if content_length > MAX_FILE_SIZE_MB * 1024 * 1024:
       raise ValueError(f"File size ({content_length / (1024*1024):.1f} MB) exceeds maximum allowed limit of {MAX_FILE_SIZE_MB} MB.")
   ```
-- **Verification:** [`tests/test_cloud_storage.py:test_load_from_s3_payload_too_large`](file:///c:/Users/parth/OneDrive/Desktop/personal%20projects/rfm%20cluster360/tests/test_cloud_storage.py).
+- **Verification:** [`tests/test_cloud_storage.py:test_load_from_s3_payload_too_large`](tests/test_cloud_storage.py).
 
 ---
 
@@ -375,33 +375,33 @@ Over the course of 10 structured engineering iterations (**Phases 0 through 9**)
 
 | Functional Module | Capability | Implementation File | Status |
 |---|---|---|:---:|
-| **Data Ingestion** | Ingest CSV from local disk, `io.StringIO`, and `io.BytesIO` | [`src/ingestion.py`](file:///c:/Users/parth/OneDrive/Desktop/personal%20projects/rfm%20cluster360/src/ingestion.py) | **Active** |
-| | Schema mapping with duplicate-assignment validation | [`src/ingestion.py`](file:///c:/Users/parth/OneDrive/Desktop/personal%20projects/rfm%20cluster360/src/ingestion.py) | **Active** |
-| | Built-in e-commerce sample datasets (UK Retail, SaaS, Electronics) | [`data/samples/`](file:///c:/Users/parth/OneDrive/Desktop/personal%20projects/rfm%20cluster360/data/) | **Active** |
-| **Data Hygiene** | Accounting negative format parser (`(10.50)` $\to -10.50$) | [`src/cleaning.py`](file:///c:/Users/parth/OneDrive/Desktop/personal%20projects/rfm%20cluster360/src/cleaning.py) | **Active** |
-| | Customer ID normalization with leading-zero preservation | [`src/cleaning.py`](file:///c:/Users/parth/OneDrive/Desktop/personal%20projects/rfm%20cluster360/src/cleaning.py) | **Active** |
-| | Null/empty/whitespace invoice number filtering | [`src/cleaning.py`](file:///c:/Users/parth/OneDrive/Desktop/personal%20projects/rfm%20cluster360/src/cleaning.py) | **Active** |
-| | Diagnostic `CleaningReport` dataclass & UI metrics | [`src/cleaning.py`](file:///c:/Users/parth/OneDrive/Desktop/personal%20projects/rfm%20cluster360/src/cleaning.py) | **Active** |
-| **RFM Analytics** | Recency, Frequency, Monetary calculation engine | [`src/rfm.py`](file:///c:/Users/parth/OneDrive/Desktop/personal%20projects/rfm%20cluster360/src/rfm.py) | **Active** |
-| | $\log(1 + x)$ skewness transformation & `StandardScaler` | [`src/clustering.py`](file:///c:/Users/parth/OneDrive/Desktop/personal%20projects/rfm%20cluster360/src/clustering.py) | **Active** |
-| | Monthly retention cohort matrix generation | [`src/cohort.py`](file:///c:/Users/parth/OneDrive/Desktop/personal%20projects/rfm%20cluster360/src/cohort.py) | **Active** |
-| **Machine Learning** | Multi-k K-Means model search ($k \in [2, 8]$) | [`src/clustering.py`](file:///c:/Users/parth/OneDrive/Desktop/personal%20projects/rfm%20cluster360/src/clustering.py) | **Active** |
-| | Silhouette score & Inertia elbow evaluation | [`src/clustering.py`](file:///c:/Users/parth/OneDrive/Desktop/personal%20projects/rfm%20cluster360/src/clustering.py) | **Active** |
-| | Pre-clustering low-variance data guard | [`src/clustering.py`](file:///c:/Users/parth/OneDrive/Desktop/personal%20projects/rfm%20cluster360/src/clustering.py) | **Active** |
-| | Weighted composite percentile persona mapping | [`src/personas.py`](file:///c:/Users/parth/OneDrive/Desktop/personal%20projects/rfm%20cluster360/src/personas.py) | **Active** |
-| | Ordinal tier collision handling for $k \ge 5$ | [`src/personas.py`](file:///c:/Users/parth/OneDrive/Desktop/personal%20projects/rfm%20cluster360/src/personas.py) | **Active** |
-| **Cloud Storage** | AWS S3 bucket CSV & Parquet ingestion via `boto3` | [`src/cloud_storage.py`](file:///c:/Users/parth/OneDrive/Desktop/personal%20projects/rfm%20cluster360/src/cloud_storage.py) | **Active** |
-| | AWS S3 segmented dataset export | [`src/cloud_storage.py`](file:///c:/Users/parth/OneDrive/Desktop/personal%20projects/rfm%20cluster360/src/cloud_storage.py) | **Active** |
-| | Local filesystem mock S3 sandbox with traversal protection | [`src/cloud_storage.py`](file:///c:/Users/parth/OneDrive/Desktop/personal%20projects/rfm%20cluster360/src/cloud_storage.py) | **Active** |
-| | Apache Parquet export with Snappy compression | [`src/export.py`](file:///c:/Users/parth/OneDrive/Desktop/personal%20projects/rfm%20cluster360/src/export.py) | **Active** |
-| **MLOps Registry** | Model serialization (`joblib`) & JSON metadata tracking | [`src/model_registry.py`](file:///c:/Users/parth/OneDrive/Desktop/personal%20projects/rfm%20cluster360/src/model_registry.py) | **Active** |
-| | Model version listing and historical comparison UI | [`pages/6_Model_Registry.py`](file:///c:/Users/parth/OneDrive/Desktop/personal%20projects/rfm%20cluster360/pages/6_Model_Registry.py) | **Active** |
-| | Live interactive customer segment classifier | [`pages/6_Model_Registry.py`](file:///c:/Users/parth/OneDrive/Desktop/personal%20projects/rfm%20cluster360/pages/6_Model_Registry.py) | **Active** |
-| | Auto-persistence hook on pipeline completion | [`app.py`](file:///c:/Users/parth/OneDrive/Desktop/personal%20projects/rfm%20cluster360/app.py) | **Active** |
-| **DevOps & CI/CD** | Multi-stage Dockerfile with non-root `appuser` (UID 1000) | [`Dockerfile`](file:///c:/Users/parth/OneDrive/Desktop/personal%20projects/rfm%20cluster360/Dockerfile) | **Active** |
-| | Docker Compose development environment | [`docker-compose.yml`](file:///c:/Users/parth/OneDrive/Desktop/personal%20projects/rfm%20cluster360/docker-compose.yml) | **Active** |
-| | GitHub Actions automated test workflow on push/PR | [`.github/workflows/ci.yml`](file:///c:/Users/parth/OneDrive/Desktop/personal%20projects/rfm%20cluster360/.github/workflows/ci.yml) | **Active** |
-| | Decoupled production vs. dev dependencies | [`requirements.txt`](file:///c:/Users/parth/OneDrive/Desktop/personal%20projects/rfm%20cluster360/requirements.txt), [`requirements-dev.txt`](file:///c:/Users/parth/OneDrive/Desktop/personal%20projects/rfm%20cluster360/requirements-dev.txt) | **Active** |
+| **Data Ingestion** | Ingest CSV from local disk, `io.StringIO`, and `io.BytesIO` | [`src/ingestion.py`](src/ingestion.py) | **Active** |
+| | Schema mapping with duplicate-assignment validation | [`src/ingestion.py`](src/ingestion.py) | **Active** |
+| | Built-in e-commerce sample datasets (UK Retail, SaaS, Electronics) | [`data/samples/`](data/) | **Active** |
+| **Data Hygiene** | Accounting negative format parser (`(10.50)` $\to -10.50$) | [`src/cleaning.py`](src/cleaning.py) | **Active** |
+| | Customer ID normalization with leading-zero preservation | [`src/cleaning.py`](src/cleaning.py) | **Active** |
+| | Null/empty/whitespace invoice number filtering | [`src/cleaning.py`](src/cleaning.py) | **Active** |
+| | Diagnostic `CleaningReport` dataclass & UI metrics | [`src/cleaning.py`](src/cleaning.py) | **Active** |
+| **RFM Analytics** | Recency, Frequency, Monetary calculation engine | [`src/rfm.py`](src/rfm.py) | **Active** |
+| | $\log(1 + x)$ skewness transformation & `StandardScaler` | [`src/clustering.py`](src/clustering.py) | **Active** |
+| | Monthly retention cohort matrix generation | [`src/cohort.py`](src/cohort.py) | **Active** |
+| **Machine Learning** | Multi-k K-Means model search ($k \in [2, 8]$) | [`src/clustering.py`](src/clustering.py) | **Active** |
+| | Silhouette score & Inertia elbow evaluation | [`src/clustering.py`](src/clustering.py) | **Active** |
+| | Pre-clustering low-variance data guard | [`src/clustering.py`](src/clustering.py) | **Active** |
+| | Weighted composite percentile persona mapping | [`src/personas.py`](src/personas.py) | **Active** |
+| | Ordinal tier collision handling for $k \ge 5$ | [`src/personas.py`](src/personas.py) | **Active** |
+| **Cloud Storage** | AWS S3 bucket CSV & Parquet ingestion via `boto3` | [`src/cloud_storage.py`](src/cloud_storage.py) | **Active** |
+| | AWS S3 segmented dataset export | [`src/cloud_storage.py`](src/cloud_storage.py) | **Active** |
+| | Local filesystem mock S3 sandbox with traversal protection | [`src/cloud_storage.py`](src/cloud_storage.py) | **Active** |
+| | Apache Parquet export with Snappy compression | [`src/export.py`](src/export.py) | **Active** |
+| **MLOps Registry** | Model serialization (`joblib`) & JSON metadata tracking | [`src/model_registry.py`](src/model_registry.py) | **Active** |
+| | Model version listing and historical comparison UI | [`pages/6_Model_Registry.py`](pages/6_Model_Registry.py) | **Active** |
+| | Live interactive customer segment classifier | [`pages/6_Model_Registry.py`](pages/6_Model_Registry.py) | **Active** |
+| | Auto-persistence hook on pipeline completion | [`app.py`](app.py) | **Active** |
+| **DevOps & CI/CD** | Multi-stage Dockerfile with non-root `appuser` (UID 1000) | [`Dockerfile`](Dockerfile) | **Active** |
+| | Docker Compose development environment | [`docker-compose.yml`](docker-compose.yml) | **Active** |
+| | GitHub Actions automated test workflow on push/PR | [`.github/workflows/ci.yml`](.github/workflows/ci.yml) | **Active** |
+| | Decoupled production vs. dev dependencies | [`requirements.txt`](requirements.txt), [`requirements-dev.txt`](requirements-dev.txt) | **Active** |
 
 ---
 
@@ -411,7 +411,7 @@ Throughout the project, several significant architectural pivots were made based
 
 ### Pivot 1: From Ad-Hoc Data Cleaning to Structured Hygiene Auditing
 - **Original Plan:** Clean data inline within `src/rfm.py` by dropping negative rows.
-- **Evolution:** Discovered that accounting parentheses inverted refunds into positive revenues, while empty invoice numbers produced phantom records. Extracted all sanitation logic into [`src/cleaning.py`](file:///c:/Users/parth/OneDrive/Desktop/personal%20projects/rfm%20cluster360/src/cleaning.py) and introduced the `CleaningReport` dataclass to provide transparency to data analysts before running clustering.
+- **Evolution:** Discovered that accounting parentheses inverted refunds into positive revenues, while empty invoice numbers produced phantom records. Extracted all sanitation logic into [`src/cleaning.py`](src/cleaning.py) and introduced the `CleaningReport` dataclass to provide transparency to data analysts before running clustering.
 
 ### Pivot 2: From Centroid Min-Max Normalization to Composite Percentile Ranking
 - **Original Plan:** Normalize K-Means centroids between 0 and 1 using min-max scaling, then map the nearest marketing persona.
@@ -423,7 +423,7 @@ Throughout the project, several significant architectural pivots were made based
 
 ### Pivot 4: Decoupling Testing and Production Dependencies
 - **Original Plan:** Maintain a single monolithic `requirements.txt` containing all packages including `pytest` and `moto`.
-- **Evolution:** Shipping test frameworks in production Docker images bloats image size and expands attack surfaces. In Phase 8, dependencies were split into [`requirements.txt`](file:///c:/Users/parth/OneDrive/Desktop/personal%20projects/rfm%20cluster360/requirements.txt) (clean production runtime) and [`requirements-dev.txt`](file:///c:/Users/parth/OneDrive/Desktop/personal%20projects/rfm%20cluster360/requirements-dev.txt) (testing and mocking tooling).
+- **Evolution:** Shipping test frameworks in production Docker images bloats image size and expands attack surfaces. In Phase 8, dependencies were split into [`requirements.txt`](requirements.txt) (clean production runtime) and [`requirements-dev.txt`](requirements-dev.txt) (testing and mocking tooling).
 
 ### Pivot 5: Proactive Security Hardening & Size Containment
 - **Original Plan:** Implement basic file reading from S3 and local paths.
@@ -453,16 +453,16 @@ Phase 9: 59 tests (Security containment, memory limits & ID normalization suite)
 
 | Suite File | Tests | Focus Areas |
 |---|:---:|---|
-| [`tests/test_ci_config.py`](file:///c:/Users/parth/OneDrive/Desktop/personal%20projects/rfm%20cluster360/tests/test_ci_config.py) | **2** | GitHub Actions workflow YAML parsing, requirements decoupling |
-| [`tests/test_cleaning.py`](file:///c:/Users/parth/OneDrive/Desktop/personal%20projects/rfm%20cluster360/tests/test_cleaning.py) | **9** | Accounting negatives, string-float normalization, leading zeros, null invoices |
-| [`tests/test_cloud_storage.py`](file:///c:/Users/parth/OneDrive/Desktop/personal%20projects/rfm%20cluster360/tests/test_cloud_storage.py) | **12** | S3 mock load/upload, path traversal prevention, 50MB size limit, Parquet roundtrip |
-| [`tests/test_clustering.py`](file:///c:/Users/parth/OneDrive/Desktop/personal%20projects/rfm%20cluster360/tests/test_clustering.py) | **4** | Optimal $k$ evaluation, silhouette scoring, low-variance input interception |
-| [`tests/test_cohort.py`](file:///c:/Users/parth/OneDrive/Desktop/personal%20projects/rfm%20cluster360/tests/test_cohort.py) | **2** | Monthly retention pivot table, non-contiguous month index reindexing |
-| [`tests/test_docker_config.py`](file:///c:/Users/parth/OneDrive/Desktop/personal%20projects/rfm%20cluster360/tests/test_docker_config.py) | **3** | Dockerfile syntax, unprivileged user configuration, compose file integrity |
-| [`tests/test_ingestion.py`](file:///c:/Users/parth/OneDrive/Desktop/personal%20projects/rfm%20cluster360/tests/test_ingestion.py) | **9** | CSV parsing, `StringIO` streams, duplicate mapping rejection, sample dataset integrity |
-| [`tests/test_model_registry.py`](file:///c:/Users/parth/OneDrive/Desktop/personal%20projects/rfm%20cluster360/tests/test_model_registry.py) | **9** | Artifact serialization, version cataloging, single-customer inference, AppTest smoke tests |
-| [`tests/test_personas.py`](file:///c:/Users/parth/OneDrive/Desktop/personal%20projects/rfm%20cluster360/tests/test_personas.py) | **2** | Composite percentile persona ranking, unique label assignment for $k=10$ |
-| [`tests/test_rfm.py`](file:///c:/Users/parth/OneDrive/Desktop/personal%20projects/rfm%20cluster360/tests/test_rfm.py) | **7** | Recency/Frequency/Monetary math, zero-spend customer handling, aggregation correctness |
+| [`tests/test_ci_config.py`](tests/test_ci_config.py) | **2** | GitHub Actions workflow YAML parsing, requirements decoupling |
+| [`tests/test_cleaning.py`](tests/test_cleaning.py) | **9** | Accounting negatives, string-float normalization, leading zeros, null invoices |
+| [`tests/test_cloud_storage.py`](tests/test_cloud_storage.py) | **12** | S3 mock load/upload, path traversal prevention, 50MB size limit, Parquet roundtrip |
+| [`tests/test_clustering.py`](tests/test_clustering.py) | **4** | Optimal $k$ evaluation, silhouette scoring, low-variance input interception |
+| [`tests/test_cohort.py`](tests/test_cohort.py) | **2** | Monthly retention pivot table, non-contiguous month index reindexing |
+| [`tests/test_docker_config.py`](tests/test_docker_config.py) | **3** | Dockerfile syntax, unprivileged user configuration, compose file integrity |
+| [`tests/test_ingestion.py`](tests/test_ingestion.py) | **9** | CSV parsing, `StringIO` streams, duplicate mapping rejection, sample dataset integrity |
+| [`tests/test_model_registry.py`](tests/test_model_registry.py) | **9** | Artifact serialization, version cataloging, single-customer inference, AppTest smoke tests |
+| [`tests/test_personas.py`](tests/test_personas.py) | **2** | Composite percentile persona ranking, unique label assignment for $k=10$ |
+| [`tests/test_rfm.py`](tests/test_rfm.py) | **7** | Recency/Frequency/Monetary math, zero-spend customer handling, aggregation correctness |
 | **Total** | **59** | **100% Pass Rate (0 failures, 0 skipped, execution time ~12s)** |
 
 ---
