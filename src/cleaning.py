@@ -3,6 +3,7 @@ Data validation, cleaning, and transparent reporting module.
 """
 
 from dataclasses import asdict, dataclass
+import re
 from typing import Dict, Optional, Tuple
 import numpy as np
 import pandas as pd
@@ -91,23 +92,23 @@ def clean_transactions(
     work_df["customer_id_str"] = work_df["customer_id"].astype(str).str.strip().str.lower()
     missing_customer_mask = (
         work_df["customer_id"].isna()
-        | (work_df["customer_id_str"].isin(["", "nan", "none", "null", "0"]))
+        | (work_df["customer_id_str"].isin(["", "nan", "none", "null"]))
     )
     rows_missing_customer = int(missing_customer_mask.sum())
     work_df = work_df[~missing_customer_mask].drop(columns=["customer_id_str"])
 
-    # Ensure customer_id is a clean string/identifier (e.g. convert float 12345.0 or "12345.0" to "12345")
+    # Ensure customer_id is a clean string/identifier (normalize float representations like 12345.0 to 12345
+    # while strictly preserving leading zeros like "00123" and distinct formats like "1E5")
     def _clean_id(val):
         if val is None or pd.isna(val):
             return ""
+        if isinstance(val, (float, np.floating)):
+            if val.is_integer():
+                return str(int(val))
+            return str(val).strip()
         s = str(val).strip()
-        try:
-            f = float(s)
-            if f.is_integer():
-                return str(int(f))
-        except (ValueError, OverflowError):
-            pass
-        return s
+        # Only strip trailing decimal .0 suffixes to preserve original string identifiers
+        return re.sub(r"\.0+$", "", s)
 
     work_df["customer_id"] = work_df["customer_id"].apply(_clean_id)
 

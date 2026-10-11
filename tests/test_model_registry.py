@@ -246,3 +246,26 @@ def test_save_model_type_validation(trained_ml_bundle):
             scaler="not_a_scaler",  # type: ignore
             cluster_map=bundle["cluster_map"],
         )
+
+
+def test_model_registry_page_apptest_smoke(trained_ml_bundle):
+    """Verifies that pages/6_Model_Registry.py runs cleanly without exceptions under Streamlit AppTest,
+    including clicking the 'Classify Customer Segment' button to test numpy imports.
+    """
+    from pathlib import Path
+    from streamlit.testing.v1 import AppTest
+
+    page_path = Path(__file__).resolve().parent.parent / "pages" / "6_Model_Registry.py"
+    bundle = trained_ml_bundle
+    at = AppTest.from_file(str(page_path), default_timeout=30)
+    at.session_state["fitted_model"] = bundle["model"]
+    at.session_state["fitted_scaler"] = bundle["scaler"]
+    at.session_state["cluster_map"] = bundle["cluster_map"]
+    at.run()
+    assert len(at.exception) == 0
+
+    classify_buttons = [b for b in at.button if "Classify" in b.label]
+    assert len(classify_buttons) > 0
+    classify_buttons[0].click().run()
+    assert len(at.exception) == 0
+

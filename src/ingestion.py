@@ -23,13 +23,44 @@ def _normalize_name(name: str) -> str:
     return re.sub(r"[^a-z0-9]", "", str(name).lower())
 
 
+def _get_id_dtypes(
+    columns: List[str], custom_dtype: Optional[Union[Dict, type]] = None
+) -> Union[Dict[str, type], type, None]:
+    """
+    Identifies columns likely to be IDs (customer_id, invoice_no, etc.)
+    and returns a dtype mapping forcing them to be read as strings,
+    preventing silent truncation of leading zeros.
+    """
+    if custom_dtype is not None:
+        return custom_dtype
+    id_aliases = set(
+        [alias.lower() for alias in COLUMN_ALIASES.get("customer_id", [])]
+        + [alias.lower() for alias in COLUMN_ALIASES.get("invoice_no", [])]
+    )
+    dtype_map: Dict[str, type] = {}
+    for col in columns:
+        col_clean = str(col).strip().lower().replace(" ", "_").replace("-", "")
+        if (
+            col_clean in id_aliases
+            or col_clean.endswith("_id")
+            or col_clean.endswith("id")
+            or col_clean.startswith("id_")
+            or col_clean.endswith("_no")
+            or col_clean.endswith("no")
+            or col_clean.endswith("number")
+        ):
+            dtype_map[str(col)] = str
+    return dtype_map if dtype_map else None
+
+
 @st.cache_data(show_spinner=False)
 def load_csv(
     file_source: Union[str, bytes, io.BytesIO, io.StringIO, object],
     max_size_mb: int = MAX_FILE_SIZE_MB,
+    dtype: Optional[Union[Dict, type]] = None,
 ) -> Tuple[Optional[pd.DataFrame], Optional[str]]:
     """
-    Load a CSV file with automatic encoding fallback and size validation.
+    Load a CSV file with automatic encoding fallback, ID preservation, and size validation.
 
     Parameters
     ----------
@@ -37,6 +68,8 @@ def load_csv(
         The path or file object to read.
     max_size_mb : int, default MAX_FILE_SIZE_MB
         Maximum allowed file size in MB.
+    dtype : Dict or type, optional
+        Optional explicit data type specification.
 
     Returns
     -------
@@ -53,7 +86,9 @@ def load_csv(
             # File path
             for encoding in SUPPORTED_ENCODINGS:
                 try:
-                    df = pd.read_csv(file_source, encoding=encoding, low_memory=False)
+                    header_df = pd.read_csv(file_source, encoding=encoding, nrows=0)
+                    col_dtypes = _get_id_dtypes(list(header_df.columns), custom_dtype=dtype)
+                    df = pd.read_csv(file_source, encoding=encoding, dtype=col_dtypes, low_memory=False)
                     return df, None
                 except (UnicodeDecodeError, UnicodeError):
                     continue
@@ -84,7 +119,9 @@ def load_csv(
 
         for encoding in SUPPORTED_ENCODINGS:
             try:
-                df = pd.read_csv(io.BytesIO(raw_bytes), encoding=encoding, low_memory=False)
+                header_df = pd.read_csv(io.BytesIO(raw_bytes), encoding=encoding, nrows=0)
+                col_dtypes = _get_id_dtypes(list(header_df.columns), custom_dtype=dtype)
+                df = pd.read_csv(io.BytesIO(raw_bytes), encoding=encoding, dtype=col_dtypes, low_memory=False)
                 if df.empty:
                     return None, "The CSV file contains no data rows."
                 return df, None

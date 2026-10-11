@@ -177,3 +177,38 @@ def test_clean_transactions_case_insensitive_null_invoices():
     assert clean_df.iloc[0]["invoice_no"] == "INV-001"
 
 
+def test_clean_id_preserves_leading_zeros_and_distinct_formats():
+    """Verifies leading zeros and non-decimal identifiers are strictly preserved, not falsely merged."""
+    data = [
+        {"CustomerID": "00123", "InvoiceNo": "101", "InvoiceDate": "2023-01-01", "Quantity": "1", "UnitPrice": "10.00"},
+        {"CustomerID": "123", "InvoiceNo": "102", "InvoiceDate": "2023-01-02", "Quantity": "1", "UnitPrice": "10.00"},
+        {"CustomerID": "00123.0", "InvoiceNo": "103", "InvoiceDate": "2023-01-03", "Quantity": "1", "UnitPrice": "10.00"},
+        {"CustomerID": "1E5", "InvoiceNo": "104", "InvoiceDate": "2023-01-04", "Quantity": "1", "UnitPrice": "10.00"},
+        {"CustomerID": "100000", "InvoiceNo": "105", "InvoiceDate": "2023-01-05", "Quantity": "1", "UnitPrice": "10.00"},
+        {"CustomerID": "0", "InvoiceNo": "106", "InvoiceDate": "2023-01-06", "Quantity": "1", "UnitPrice": "10.00"},
+    ]
+    df = pd.DataFrame(data)
+    mapping = {
+        "customer_id": "CustomerID",
+        "invoice_no": "InvoiceNo",
+        "invoice_date": "InvoiceDate",
+        "quantity": "Quantity",
+        "unit_price": "UnitPrice",
+    }
+    clean_df, report = clean_transactions(df, mapping)
+    unique_ids = set(clean_df["customer_id"].unique())
+
+    # "00123" and "00123.0" normalize to "00123"
+    # "123" remains distinct from "00123"
+    # "1E5" remains distinct from "100000"
+    # "0" is not dropped as missing
+    assert "00123" in unique_ids
+    assert "123" in unique_ids
+    assert "1E5" in unique_ids
+    assert "100000" in unique_ids
+    assert "0" in unique_ids
+    assert report.total_customers == 5  # "00123", "123", "1E5", "100000", "0"
+    assert report.rows_removed_missing_customer == 0
+
+
+

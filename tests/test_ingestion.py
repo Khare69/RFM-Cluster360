@@ -102,3 +102,14 @@ def test_load_csv_from_string_io_object():
     assert len(df) == 1
     assert "CustomerID" in df.columns
 
+
+def test_load_csv_preserves_leading_zeros():
+    """Verifies that load_csv reads ID columns as string dtype, preserving leading zeros."""
+    csv_text = "CustomerID,InvoiceNo,InvoiceDate,Quantity,UnitPrice\n00123,000536,2023-01-01,2,10.5\n"
+    df, err = load_csv(io.BytesIO(csv_text.encode("utf-8")))
+    assert err is None
+    assert df is not None
+    assert df["CustomerID"].iloc[0] == "00123"
+    assert df["InvoiceNo"].iloc[0] == "000536"
+
+

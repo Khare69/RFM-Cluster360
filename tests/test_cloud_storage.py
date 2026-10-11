@@ -275,3 +275,51 @@ def test_upload_to_s3_input_validation(sample_rfm_df):
     ok4, err4 = upload_to_s3(sample_rfm_df, "b", "k", format="xml")
     assert ok4 is False
     assert "Unsupported format 'xml'" in err4
+
+
+def test_mock_s3_path_traversal_prevention(tmp_path):
+    """Verifies get_mock_s3_path rejects relative paths that escape the mock storage root."""
+    from src.cloud_storage import get_mock_s3_path
+
+    mock_dir = str(tmp_path / "mock_root")
+
+    with pytest.raises(ValueError, match="Path traversal detected"):
+        get_mock_s3_path("bucket", "../../etc/passwd", mock_dir=mock_dir)
+
+    with pytest.raises(ValueError, match="Path traversal detected"):
+        get_mock_s3_path("../../outside", "data.csv", mock_dir=mock_dir)
+
+
+def test_load_and_upload_path_traversal_graceful_error(sample_rfm_df, tmp_path, monkeypatch):
+    """Verifies load_from_s3 and upload_to_s3 return clean error messages when path traversal is attempted."""
+    monkeypatch.setenv("USE_LOCAL_MOCK", "true")
+    mock_dir = str(tmp_path / "mock_root")
+
+    df, err = load_from_s3("mybucket", "../../../etc/shadow", mock_dir=mock_dir)
+    assert df is None
+    assert err is not None
+    assert "Path traversal detected" in err
+
+    success, msg = upload_to_s3(sample_rfm_df, "mybucket", "../../../hacked.csv", mock_dir=mock_dir)
+    assert success is False
+    assert "Path traversal detected" in msg
+
+
+def test_load_from_s3_mock_size_limit(sample_rfm_df, tmp_path, monkeypatch):
+    """Verifies load_from_s3 in mock mode enforces max_size_mb limits."""
+    monkeypatch.setenv("USE_LOCAL_MOCK", "true")
+    mock_dir = tmp_path / "mock_root"
+    bucket = "test-bucket"
+    key = "big_file.csv"
+
+    file_path = mock_dir / bucket / key
+    file_path.parent.mkdir(parents=True, exist_ok=True)
+    # Write a small file (~1 KB)
+    sample_rfm_df.to_csv(file_path, index=False)
+
+    # Calling with max_size_mb=0 (0 MB max) should reject it
+    df, err = load_from_s3(bucket, key, mock_dir=str(mock_dir), max_size_mb=0)
+    assert df is None
+    assert err is not None
+    assert "exceeds maximum allowed size" in err.lower()
+

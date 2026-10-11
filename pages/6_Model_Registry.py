@@ -6,6 +6,7 @@ session hot-swapping, and real-time customer segmentation inference.
 
 from datetime import datetime
 import os
+import numpy as np
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
@@ -90,9 +91,13 @@ with tab_versions:
         if has_active_model:
             c_save1, c_save2 = st.columns([2, 1])
             with c_save1:
+                k_val = st.session_state.get(
+                    "selected_k",
+                    getattr(st.session_state.fitted_model, "n_clusters", "unknown"),
+                )
                 custom_note = st.text_input(
                     "Version Notes / Description",
-                    value=f"Model k={st.session_state.selected_k} trained on {len(st.session_state.rfm_df) if 'rfm_df' in st.session_state and st.session_state.rfm_df is not None else 'unknown'} customers",
+                    value=f"Model k={k_val} trained on {len(st.session_state.rfm_df) if 'rfm_df' in st.session_state and st.session_state.rfm_df is not None else 'unknown'} customers",
                     placeholder="e.g. Production Candidate, Q4 Retail Baseline",
                     key="save_custom_note",
                 )

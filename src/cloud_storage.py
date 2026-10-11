@@ -6,6 +6,7 @@ with an offline local mock mode for development, testing, and demos.
 
 import io
 import os
+from pathlib import Path
 from typing import Optional, Tuple
 import boto3
 from botocore.exceptions import ClientError, EndpointConnectionError, NoCredentialsError
@@ -15,6 +16,8 @@ from config.settings import (
     AWS_ACCESS_KEY_ID,
     AWS_DEFAULT_REGION,
     AWS_SECRET_ACCESS_KEY,
+    MAX_FILE_SIZE_BYTES,
+    MAX_FILE_SIZE_MB,
     MOCK_S3_DIR,
     USE_LOCAL_MOCK,
 )
@@ -42,6 +45,8 @@ def is_mock_mode() -> bool:
 def get_mock_s3_path(bucket: str, key: str, mock_dir: Optional[str] = None) -> str:
     """
     Resolves the local filesystem path for a mock S3 bucket and object key.
+    Enforces strict containment within the mock storage root directory to prevent
+    path traversal vulnerabilities.
 
     Parameters
     ----------
@@ -56,11 +61,22 @@ def get_mock_s3_path(bucket: str, key: str, mock_dir: Optional[str] = None) -> s
     -------
     str
         Absolute local file path.
+
+    Raises
+    ------
+    ValueError
+        If the resolved path escapes the mock root directory.
     """
     base = mock_dir or os.getenv("MOCK_S3_DIR", MOCK_S3_DIR)
+    root = Path(base).resolve()
     clean_bucket = bucket.replace("s3://", "").strip("/\\")
     clean_key = key.lstrip("/\\")
-    return os.path.abspath(os.path.join(base, clean_bucket, clean_key))
+    target = (root / clean_bucket / clean_key).resolve()
+    if not target.is_relative_to(root):
+        raise ValueError(
+            f"Path traversal detected: path '{target}' escapes mock storage root '{root}'."
+        )
+    return str(target)
 
 
 def get_s3_client(
@@ -110,6 +126,7 @@ def load_from_s3(
     region_name: Optional[str] = None,
     endpoint_url: Optional[str] = None,
     mock_dir: Optional[str] = None,
+    max_size_mb: int = MAX_FILE_SIZE_MB,
 ) -> Tuple[Optional[pd.DataFrame], Optional[str]]:
     """
     Downloads and parses a CSV or Parquet file from an S3 bucket or local mock storage.
@@ -130,6 +147,8 @@ def load_from_s3(
         Optional custom S3 endpoint URL.
     mock_dir : str, optional
         Optional custom local mock root directory.
+    max_size_mb : int, default 50
+        Maximum allowed download size in megabytes.
 
     Returns
     -------
@@ -143,12 +162,22 @@ def load_from_s3(
         return None, "Both bucket name and object key must be provided."
 
     data_bytes: Optional[bytes] = None
+    max_bytes = max_size_mb * 1024 * 1024
 
     # Check if local mock mode is forced
     if is_mock_mode():
-        mock_file_path = get_mock_s3_path(clean_bucket, clean_key, mock_dir=mock_dir)
+        try:
+            mock_file_path = get_mock_s3_path(clean_bucket, clean_key, mock_dir=mock_dir)
+        except ValueError as e:
+            return None, str(e)
+
         if not os.path.exists(mock_file_path):
             return None, f"Local mock file not found: {mock_file_path}"
+
+        file_size = os.path.getsize(mock_file_path)
+        if file_size > max_bytes:
+            return None, f"File exceeds maximum allowed size of {max_size_mb} MB."
+
         try:
             with open(mock_file_path, "rb") as f:
                 data_bytes = f.read()
@@ -164,11 +193,21 @@ def load_from_s3(
                 endpoint_url=endpoint_url,
             )
             response = s3_client.get_object(Bucket=clean_bucket, Key=clean_key)
+            content_length = response.get("ContentLength")
+            if content_length is not None and content_length > max_bytes:
+                return None, f"File exceeds maximum allowed size of {max_size_mb} MB."
             data_bytes = response["Body"].read()
         except NoCredentialsError:
             # Fall back to local mock storage if file exists on disk
-            mock_file_path = get_mock_s3_path(clean_bucket, clean_key, mock_dir=mock_dir)
+            try:
+                mock_file_path = get_mock_s3_path(clean_bucket, clean_key, mock_dir=mock_dir)
+            except ValueError as e:
+                return None, str(e)
+
             if os.path.exists(mock_file_path):
+                file_size = os.path.getsize(mock_file_path)
+                if file_size > max_bytes:
+                    return None, f"File exceeds maximum allowed size of {max_size_mb} MB."
                 try:
                     with open(mock_file_path, "rb") as f:
                         data_bytes = f.read()
@@ -274,7 +313,10 @@ def upload_to_s3(
         return False, f"Unsupported format '{format}'. Supported formats are 'parquet' and 'csv'."
 
     if is_mock_mode():
-        target_path = get_mock_s3_path(clean_bucket, clean_key, mock_dir=mock_dir)
+        try:
+            target_path = get_mock_s3_path(clean_bucket, clean_key, mock_dir=mock_dir)
+        except ValueError as e:
+            return False, str(e)
         try:
             os.makedirs(os.path.dirname(target_path), exist_ok=True)
             with open(target_path, "wb") as f:
@@ -299,7 +341,10 @@ def upload_to_s3(
             return True, f"s3://{clean_bucket}/{clean_key}"
         except NoCredentialsError:
             # Fall back to local mock storage
-            target_path = get_mock_s3_path(clean_bucket, clean_key, mock_dir=mock_dir)
+            try:
+                target_path = get_mock_s3_path(clean_bucket, clean_key, mock_dir=mock_dir)
+            except ValueError as e:
+                return False, str(e)
             try:
                 os.makedirs(os.path.dirname(target_path), exist_ok=True)
                 with open(target_path, "wb") as f:
