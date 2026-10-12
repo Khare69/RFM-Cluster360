@@ -33,11 +33,14 @@ if filtered_df.empty:
     st.warning("No customers match the current filter selection. Please adjust the sidebar filters.")
     st.stop()
 
+curr_sym = st.session_state.get("currency_symbol", "$")
+
 # Top KPIs
 render_overview_kpis(
     labeled_df=filtered_df,
     cleaning_report=st.session_state.cleaning_report,
     optimal_k=st.session_state.selected_k,
+    currency_symbol=curr_sym,
 )
 
 st.markdown("---")
@@ -49,7 +52,7 @@ with col1:
     st.plotly_chart(fig_cust, use_container_width=True)
 
 with col2:
-    fig_rev = segment_revenue_bar(filtered_df)
+    fig_rev = segment_revenue_bar(filtered_df, currency_symbol=curr_sym)
     st.plotly_chart(fig_rev, use_container_width=True)
 
 # Chart Row 2: Treemap and Value Landscape
@@ -59,7 +62,7 @@ with col3:
     st.plotly_chart(fig_tree, use_container_width=True)
 
 with col4:
-    fig_scatter = rfm_summary_scatter(filtered_df)
+    fig_scatter = rfm_summary_scatter(filtered_df, currency_symbol=curr_sym)
     st.plotly_chart(fig_scatter, use_container_width=True)
 
 st.markdown("---")

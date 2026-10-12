@@ -9,14 +9,17 @@ import pandas as pd
 import streamlit as st
 
 from config.settings import (
+    DEFAULT_CURRENCY,
+    DEFAULT_CURRENCY_SYMBOL,
     DEFAULT_K_MAX,
     DEFAULT_K_MIN,
     MAX_FILE_SIZE_MB,
     MIN_CUSTOMERS_FOR_CLUSTERING,
+    SUPPORTED_CURRENCIES,
 )
 from components.data_preview import render_cleaning_report_card, render_column_mapping_ui
 from components.download_button import render_export_section
-from src.cleaning import clean_transactions
+from src.cleaning import CleaningPolicy, clean_transactions
 from src.cloud_storage import is_mock_mode, load_from_s3
 from src.clustering import build_clustered_df, evaluate_clusters, preprocess_rfm, run_kmeans
 from src.cohort import build_cohort_matrix
@@ -54,6 +57,9 @@ def init_session_state():
         "model_version": None,
         "fitted_model": None,
         "fitted_scaler": None,
+        "currency_symbol": DEFAULT_CURRENCY_SYMBOL,
+        "currency_code": DEFAULT_CURRENCY,
+        "cleaning_policy": "gross",
     }
     for k, v in defaults.items():
         if k not in st.session_state:
@@ -74,10 +80,18 @@ def run_pipeline(
     k_override: int = None,
     custom_snapshot_date=None,
     remove_duplicates: bool = False,
+    policy: Optional[CleaningPolicy] = None,
 ):
     """Executes the full end-to-end segmentation pipeline."""
+    if policy is None:
+        policy = CleaningPolicy(
+            policy_type=st.session_state.get("cleaning_policy", "gross"),
+            remove_duplicates=remove_duplicates,
+            currency=st.session_state.get("currency_code", "USD"),
+        )
+
     with st.spinner("1/5 Cleaning transaction records and filtering anomalies..."):
-        clean_df, report = clean_transactions(raw_df, mapping, remove_duplicates=remove_duplicates)
+        clean_df, report = clean_transactions(raw_df, mapping, policy=policy)
 
     if clean_df.empty or report.total_customers < MIN_CUSTOMERS_FOR_CLUSTERING:
         st.error(
@@ -149,11 +163,12 @@ def main():
 
     # If data already loaded, provide quick status & reset option
     if st.session_state.labeled_df is not None:
+        curr_sym = st.session_state.get("currency_symbol", "$")
         st.sidebar.success(
             f"✅ **Analysis Active**\n\n"
             f"• **Customers:** {len(st.session_state.labeled_df):,}\n\n"
             f"• **Segments:** {st.session_state.selected_k} (k={st.session_state.selected_k})\n\n"
-            f"• **Revenue:** ${st.session_state.labeled_df['monetary'].sum():,.2f}"
+            f"• **Revenue:** {curr_sym}{st.session_state.labeled_df['monetary'].sum():,.2f}"
         )
         if st.sidebar.button("🔄 Reset / Upload New Dataset", use_container_width=True):
             reset_analysis()
@@ -340,18 +355,50 @@ def main():
             is_valid, missing_cols = validate_mapping(user_mapping)
 
             st.markdown("---")
-            col_left, col_right = st.columns([1, 1])
+            st.subheader("⚙️ Analysis & Cleaning Policies")
+            cfg_col1, cfg_col2, cfg_col3 = st.columns(3)
 
-            with col_left:
+            with cfg_col1:
+                curr_options = list(SUPPORTED_CURRENCIES.keys())
+                chosen_curr = st.selectbox(
+                    "Display Currency",
+                    options=curr_options,
+                    index=0,
+                    help="Currency symbol applied across all visual charts, metrics, and exports.",
+                )
+                curr_symbol = SUPPORTED_CURRENCIES[chosen_curr]
+                st.session_state.currency_code = chosen_curr
+                st.session_state.currency_symbol = curr_symbol
+
+            with cfg_col2:
+                policy_options = [
+                    "Gross Spend (Exclude Returns)",
+                    "Net Spend (Deduct Refunds)",
+                ]
+                chosen_policy = st.radio(
+                    "Transaction Returns Policy",
+                    options=policy_options,
+                    index=0,
+                    help="Gross Spend ignores negative values. Net Spend retains refunds/returns to net out customer spend.",
+                )
+                policy_type = "net" if "Net" in chosen_policy else "gross"
+                st.session_state.cleaning_policy = policy_type
+
+            with cfg_col3:
                 remove_dup = st.checkbox("Remove exact duplicate transactions", value=False)
-            
-            with col_right:
+                st.markdown("<div style='height: 8px;'></div>", unsafe_allow_html=True)
                 if is_valid:
                     if st.button("✨ Run Customer Segmentation Pipeline", type="primary", use_container_width=True):
+                        policy_obj = CleaningPolicy(
+                            policy_type=policy_type,
+                            remove_duplicates=remove_dup,
+                            currency=chosen_curr,
+                        )
                         run_pipeline(
                             raw_df=raw_df,
                             mapping=user_mapping,
                             remove_duplicates=remove_dup,
+                            policy=policy_obj,
                         )
                         st.rerun()
                 else:
@@ -363,7 +410,10 @@ def main():
         
         # Display Data Hygiene Audit
         if st.session_state.cleaning_report:
-            render_cleaning_report_card(st.session_state.cleaning_report)
+            render_cleaning_report_card(
+                st.session_state.cleaning_report,
+                currency_symbol=st.session_state.currency_symbol,
+            )
 
         st.markdown("---")
         st.subheader("🧭 Next: Explore Your Dashboards")
@@ -401,7 +451,11 @@ def main():
         )
 
         # Export Component
-        render_export_section(st.session_state.labeled_df)
+        render_export_section(
+            st.session_state.labeled_df,
+            currency_symbol=st.session_state.currency_symbol,
+        )
+
 
 
 if __name__ == "__main__":

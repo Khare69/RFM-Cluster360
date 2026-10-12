@@ -6,7 +6,15 @@ import pandas as pd
 import pytest
 
 from src.clustering import build_clustered_df, preprocess_rfm, run_kmeans
-from src.personas import generate_cluster_label_mapping, label_segments
+from src.personas import (
+    PERSONA_DEFINITIONS,
+    SEGMENT_COLORS,
+    classify_cluster,
+    generate_cluster_label_mapping,
+    get_persona_metadata,
+    get_segment_color,
+    label_segments,
+)
 
 
 def test_label_segments_with_synthetic(synthetic_rfm_base):
@@ -56,4 +64,31 @@ def test_label_segments_k10_unique_labels():
     labels = list(cluster_map.values())
     assert len(set(labels)) == 10, "All 10 cluster labels must be strictly unique"
     assert any("Tier" in label for label in labels), "Overflow cluster should contain a Tier qualifier"
+
+
+def test_classify_cluster_rule_based_behavior():
+    """Verify that classify_cluster maps normalized centroid behavior to correct marketing personas."""
+    assert classify_cluster(r_rank=0.9, f_rank=0.8, m_rank=0.85) == "Champions"
+    assert classify_cluster(r_rank=0.45, f_rank=0.8, m_rank=0.7) == "Loyal Customers"
+    assert classify_cluster(r_rank=0.2, f_rank=0.8, m_rank=0.8) == "At Risk"
+    assert classify_cluster(r_rank=0.8, f_rank=0.2, m_rank=0.2) == "New Customers"
+    assert classify_cluster(r_rank=0.8, f_rank=0.2, m_rank=0.6) == "Promising"
+    assert classify_cluster(r_rank=0.1, f_rank=0.1, m_rank=0.1) == "Lost / Dormant"
+
+
+def test_get_persona_metadata_and_colors_no_mutation():
+    """Verify that resolving tiered persona labels yields complete metadata without mutating global state."""
+    initial_keys = set(PERSONA_DEFINITIONS.keys())
+
+    meta_tier2 = get_persona_metadata("Champions (Tier 2)")
+    assert "Bought recently" in meta_tier2["description"]
+    assert "(Champions (Tier 2))" in meta_tier2["description"]
+    assert meta_tier2["color"] == SEGMENT_COLORS["Champions"]
+
+    color_tier3 = get_segment_color("At Risk (Tier 3)")
+    assert color_tier3 == SEGMENT_COLORS["At Risk"]
+
+    # Verify that global dictionary keys were not mutated
+    assert set(PERSONA_DEFINITIONS.keys()) == initial_keys
+
 

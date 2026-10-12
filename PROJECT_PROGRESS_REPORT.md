@@ -429,11 +429,15 @@ Throughout the project, several significant architectural pivots were made based
 - **Original Plan:** Implement basic file reading from S3 and local paths.
 - **Evolution:** A code security review revealed that user-controlled S3 keys could traverse out of mock sandboxes, and unbounded S3 downloads could crash container instances. Phase 9 hardened path canonicalization with `is_relative_to()` and added pre-flight 50MB payload guards.
 
+### Pivot 6: Rule-Based Behavioral Personas & Return-Aware Cleaning Policy
+- **Original Plan:** Rank clusters monotonically by composite score and drop all negative transaction quantities as simple order cancellations.
+- **Evolution:** Discovered that purely relative composite ranking forced low-value clusters to assume high-tier labels in small or low-activity cohorts. Furthermore, dropping negative quantities ignored legitimate customer returns, inflating lifetime gross spend and distorting purchase recency. Phase 10 introduced explicit behavioral threshold classification (`classify_cluster()`), immutable persona dictionaries, and a configurable `CleaningPolicy` allowing analysts to choose between Gross Spend and Net Spend while tracking refund amounts and rates independently.
+
 ---
 
 ## 6. Automated Test Suite & Quality Assurance Growth
 
-The test suite expanded systematically across every phase, growing from **0 tests** at project bootstrap to **59 passing tests**:
+The test suite expanded systematically across every phase, growing from **0 tests** at project bootstrap to **65 passing tests**:
 
 ```
 Growth Timeline:
@@ -447,6 +451,7 @@ Phase 6: 34 tests (Docker configuration & container validation suite)
 Phase 7: 46 tests (Model registry serialization & inference suite)
 Phase 8: 51 tests (CI/CD configuration & dependency split suite)
 Phase 9: 59 tests (Security containment, memory limits & ID normalization suite)
+Phase 10: 65 tests (Analytical correctness, pre-scale variance, rule-based personas, net returns & currency localization suite)
 ```
 
 ### Test Suite Breakdown
@@ -454,16 +459,16 @@ Phase 9: 59 tests (Security containment, memory limits & ID normalization suite)
 | Suite File | Tests | Focus Areas |
 |---|:---:|---|
 | [`tests/test_ci_config.py`](tests/test_ci_config.py) | **2** | GitHub Actions workflow YAML parsing, requirements decoupling |
-| [`tests/test_cleaning.py`](tests/test_cleaning.py) | **9** | Accounting negatives, string-float normalization, leading zeros, null invoices |
+| [`tests/test_cleaning.py`](tests/test_cleaning.py) | **11** | Accounting negatives, string-float normalization, leading zeros, null invoices, net returns policy, currency export |
 | [`tests/test_cloud_storage.py`](tests/test_cloud_storage.py) | **12** | S3 mock load/upload, path traversal prevention, 50MB size limit, Parquet roundtrip |
-| [`tests/test_clustering.py`](tests/test_clustering.py) | **4** | Optimal $k$ evaluation, silhouette scoring, low-variance input interception |
+| [`tests/test_clustering.py`](tests/test_clustering.py) | **5** | Optimal $k$ evaluation, silhouette scoring, low-variance input interception, pre-scaling variance guard |
 | [`tests/test_cohort.py`](tests/test_cohort.py) | **2** | Monthly retention pivot table, non-contiguous month index reindexing |
 | [`tests/test_docker_config.py`](tests/test_docker_config.py) | **3** | Dockerfile syntax, unprivileged user configuration, compose file integrity |
 | [`tests/test_ingestion.py`](tests/test_ingestion.py) | **9** | CSV parsing, `StringIO` streams, duplicate mapping rejection, sample dataset integrity |
 | [`tests/test_model_registry.py`](tests/test_model_registry.py) | **9** | Artifact serialization, version cataloging, single-customer inference, AppTest smoke tests |
-| [`tests/test_personas.py`](tests/test_personas.py) | **2** | Composite percentile persona ranking, unique label assignment for $k=10$ |
-| [`tests/test_rfm.py`](tests/test_rfm.py) | **7** | Recency/Frequency/Monetary math, zero-spend customer handling, aggregation correctness |
-| **Total** | **59** | **100% Pass Rate (0 failures, 0 skipped, execution time ~12s)** |
+| [`tests/test_personas.py`](tests/test_personas.py) | **4** | Composite percentile ranking, $k=10$ unique collision labels, rule-based classification, global dictionary immutability |
+| [`tests/test_rfm.py`](tests/test_rfm.py) | **8** | Recency/Frequency/Monetary math, zero-spend customer handling, aggregation correctness, net refund RFM handling & recency protection |
+| **Total** | **65** | **100% Pass Rate (0 failures, 0 skipped, execution time ~15s)** |
 
 ---
 
@@ -492,25 +497,26 @@ The repository history reflects structured, semantic commits aligned with projec
 | `745e43e` | `fix: data validation guards, theme-adaptive UI, negative silhouette scaling, and pytest config` | Hardening |
 | `04da005` | `docs: update implementation plan with review feedback and ignore review files` | Planning |
 | `ee61905` | `fix: security & data integrity — mock S3 path traversal, S3 size limit, live classifier crash, ID normalization (Phase 9)` | Phase 9 |
+| `30420ac` | `docs: mark Phase 9 as completed in implementation plan` | Documentation |
+| *pending* | `fix: analytical correctness — pre-scale variance guard, rule-based personas, net returns, configurable currency (Phase 10)` | Phase 10 |
 
 ---
 
-## 8. Upcoming Roadmap & Next Phases (Phases 10–12)
+## 8. Upcoming Roadmap & Next Phases (Phases 11–12)
 
-The implementation plan outlines three upcoming phases to complete the project's journey to production-grade data engineering:
+The implementation plan outlines two upcoming phases to complete the project's journey to production-grade data engineering:
 
 ```mermaid
 graph TD
-    P9["Phase 9: Security & Integrity (Completed)"] --> P10["Phase 10: Analytical Correctness & Persona Logic"]
-    P10 --> P11["Phase 11: Architectural Decoupling & Pipeline Robustness"]
+    P10["Phase 10: Analytical Correctness (Completed)"] --> P11["Phase 11: Architectural Decoupling & Pipeline Robustness"]
     P11 --> P12["Phase 12: Production Engineering & Validation"]
 ```
 
-### Phase 10: Analytical Correctness & Persona Logic
-- **Pre-Scaling Variance Guard:** Evaluate `log1p(data).std(axis=0)` *before* applying `StandardScaler`, ensuring near-zero variance is caught before scaling forces variance to 1.
-- **Rule-Based Persona Classification:** Implement explicit behavioral threshold rules alongside composite ranking. If a cluster does not match a standard marketing profile, assign a clear descriptive label (e.g., *"Segment B — Recent, Low Spend"*).
-- **Net vs. Gross Returns Policy:** Introduce a `CleaningPolicy` dataclass allowing analysts to toggle between "Gross Spend" (dropping returns) and "Net Spend" (netting returns against purchases).
-- **Configurable Currency Localization:** Support dynamic currency symbols (£, €, ₹, $) across all charts, tables, and export headers.
+### Phase 10: Analytical Correctness & Persona Logic (Completed)
+- **Pre-Scaling Variance Guard:** Evaluates `log1p(data).std(axis=0)` *before* applying `StandardScaler`, catching near-zero variance data before scaling forces noise to unit variance.
+- **Rule-Based Persona Classification:** Implemented explicit behavioral threshold rules (`classify_cluster()`) alongside composite ranking with immutable lookup helpers and `(Tier 2)` collision tags.
+- **Net vs. Gross Returns Policy:** Introduced `CleaningPolicy` dataclass allowing analysts to toggle between Gross Spend and Net Spend while tracking refund amounts and rates independently.
+- **Configurable Currency Localization:** Dynamic currency symbol selection (`USD`, `EUR`, `GBP`, `INR`, `JPY`, `CAD`, `AUD`) propagating seamlessly across charts, KPIs, and export headers.
 
 ### Phase 11: Architectural Decoupling & Pipeline Robustness
 - **Core Library Decoupling:** Remove all Streamlit UI imports (`streamlit`, `@st.cache_data`) from `src/`, migrating caching to an orchestration service layer to enable headless CLI and API execution.
@@ -524,4 +530,4 @@ graph TD
 ---
 
 > **Report Conclusion:**  
-> RFM Cluster360 has completed **Phases 0 through 9** with zero failing tests, comprehensive cloud and MLOps capabilities, and robust defensive security measures. The codebase is fully verified, containerized, documented, and synchronized with GitHub.
+> RFM Cluster360 has completed **Phases 0 through 10** with zero failing tests (65/65 passed), comprehensive cloud, MLOps, security, and analytical correctness capabilities. The codebase is fully verified, containerized, documented, and synchronized with GitHub.

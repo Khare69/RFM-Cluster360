@@ -9,8 +9,43 @@ import pandas as pd
 
 from config.settings import SEGMENT_COLORS
 
+import re
+
+class _PersonaDefinitionsDict(dict):
+    """Dict wrapper that dynamically resolves tier qualifiers without mutating global state."""
+    def __getitem__(self, key):
+        if key not in self:
+            base_key = re.sub(r"\s*\(Tier \d+\)$", "", key) if isinstance(key, str) else key
+            if base_key in self:
+                meta = dict(super().__getitem__(base_key))
+                meta["description"] = f"{meta['description']} ({key})"
+                return meta
+        return super().__getitem__(key)
+
+    def get(self, key, default=None):
+        if key in self:
+            return self[key]
+        base_key = re.sub(r"\s*\(Tier \d+\)$", "", key) if isinstance(key, str) else key
+        if base_key in self:
+            meta = dict(self[base_key])
+            meta["description"] = f"{meta['description']} ({key})"
+            return meta
+        return default
+
+
+class _SegmentColorsDict(dict):
+    """Dict wrapper that dynamically resolves tier qualifiers to base persona colors without mutating global state."""
+    def get(self, key, default=None):
+        if key in self:
+            return self[key]
+        base_key = re.sub(r"\s*\(Tier \d+\)$", "", key) if isinstance(key, str) else key
+        if base_key in self:
+            return self[base_key]
+        return default if default is not None else "#7f7f7f"
+
+
 # Detailed persona definitions with descriptions and marketing recommendations
-PERSONA_DEFINITIONS: Dict[str, Dict[str, str]] = {
+_BASE_PERSONA_DEFINITIONS: Dict[str, Dict[str, str]] = {
     "Champions": {
         "description": "Bought recently, buy often, and spend the most. Your most valuable customers.",
         "action": "Reward them with VIP perks, early product access, and referral incentives.",
@@ -58,6 +93,29 @@ PERSONA_DEFINITIONS: Dict[str, Dict[str, str]] = {
     },
 }
 
+PERSONA_DEFINITIONS: Dict[str, Dict[str, str]] = _PersonaDefinitionsDict(_BASE_PERSONA_DEFINITIONS)
+
+
+def get_segment_color(label: str) -> str:
+    """Returns color hex code for a segment, resolving tiers without mutating global dictionaries."""
+    base_name = re.sub(r"\s*\(Tier \d+\)$", "", label) if isinstance(label, str) else str(label)
+    return SEGMENT_COLORS.get(label, SEGMENT_COLORS.get(base_name, "#7f7f7f"))
+
+
+def get_persona_metadata(label: str) -> Dict[str, str]:
+    """Returns metadata dictionary for a segment label without mutating global dictionaries."""
+    base_name = re.sub(r"\s*\(Tier \d+\)$", "", label) if isinstance(label, str) else str(label)
+    base_meta = _BASE_PERSONA_DEFINITIONS.get(base_name, {
+        "description": "Customer segment identified through behavioral clustering.",
+        "action": "Tailor marketing strategy based on RFM profile.",
+        "color": get_segment_color(label),
+    })
+    meta = dict(base_meta)
+    meta["color"] = get_segment_color(label)
+    if "Tier" in label:
+        meta["description"] = f"{base_meta['description']} ({label})"
+    return meta
+
 
 def classify_cluster(
     r_rank: float,  # 0.0 (stale) to 1.0 (recent/fresh)
@@ -65,7 +123,7 @@ def classify_cluster(
     m_rank: float,  # 0.0 (low) to 1.0 (high monetary)
 ) -> str:
     """
-    Classifies a cluster based on normalized percentile ranks of its centroid.
+    Classifies a cluster based on normalized behavioral percentile scores of its centroid.
 
     Parameters
     ----------
@@ -79,7 +137,7 @@ def classify_cluster(
     Returns
     -------
     str
-        Segment name.
+        Segment persona name.
     """
     # Top tier: Fresh, frequent, high spenders
     if r_rank >= 0.6 and f_rank >= 0.6 and m_rank >= 0.6:
@@ -138,9 +196,9 @@ ORDERED_PERSONAS: List[str] = [
 def generate_cluster_label_mapping(clustered_df: pd.DataFrame) -> Dict[int, str]:
     """
     Generates a deterministic mapping from cluster IDs (0..k-1) to human-readable persona labels.
-    Ranks clusters by a weighted composite score (0.35*R_inverted + 0.35*F + 0.30*M) and assigns
-    distinct labels in order from the predefined persona hierarchy. Adds ordinal qualifiers
-    (e.g., '(Tier 2)') for overflow when k >= 10.
+    Uses explicit, behavior-based threshold rules via classify_cluster() on centroid normalized scores,
+    and resolves duplicate assignments with deterministic ordinal tier qualifiers (e.g., '(Tier 2)')
+    sorted by composite ranking. Does not mutate global dictionaries.
 
     Parameters
     ----------
@@ -186,42 +244,32 @@ def generate_cluster_label_mapping(clustered_df: pd.DataFrame) -> Dict[int, str]
     # Weighted composite score: 35% Recency, 35% Frequency, 30% Monetary
     composite_scores = 0.35 * r_inverted + 0.35 * f_scores + 0.30 * m_scores
     centroids["composite_score"] = composite_scores
+    centroids["r_score"] = r_inverted
+    centroids["f_score"] = f_scores
+    centroids["m_score"] = m_scores
 
     # Sort centroids descending by composite score (strongest -> weakest)
     sorted_centroids = centroids.sort_values(by="composite_score", ascending=False).reset_index(drop=True)
 
     assigned: Dict[int, str] = {}
-    used_labels = set()
+    base_counts: Dict[str, int] = {}
 
-    for rank, row in sorted_centroids.iterrows():
+    for _, row in sorted_centroids.iterrows():
         c_id = int(row["cluster"])
-        persona_idx = int(round(rank * (len(ORDERED_PERSONAS) - 1) / (k - 1)))
-        base_label = ORDERED_PERSONAS[persona_idx]
+        r_s = float(row["r_score"])
+        f_s = float(row["f_score"])
+        m_s = float(row["m_score"])
 
-        label = base_label
-        if label in used_labels:
-            tier = 2
-            while f"{base_label} (Tier {tier})" in used_labels:
-                tier += 1
-            label = f"{base_label} (Tier {tier})"
+        base_label = classify_cluster(r_s, f_s, m_s)
+        count = base_counts.get(base_label, 0) + 1
+        base_counts[base_label] = count
+
+        if count == 1:
+            label = base_label
+        else:
+            label = f"{base_label} (Tier {count})"
 
         assigned[c_id] = label
-        used_labels.add(label)
-
-        # Ensure label exists in SEGMENT_COLORS and PERSONA_DEFINITIONS
-        if label not in SEGMENT_COLORS:
-            SEGMENT_COLORS[label] = SEGMENT_COLORS.get(base_label, "#7f7f7f")
-        if label not in PERSONA_DEFINITIONS:
-            base_meta = PERSONA_DEFINITIONS.get(base_label, {
-                "description": "Customer segment identified through behavioral clustering.",
-                "action": "Tailor marketing strategy based on RFM profile.",
-                "color": "#7f7f7f",
-            })
-            PERSONA_DEFINITIONS[label] = {
-                "description": f"{base_meta['description']} ({label})",
-                "action": base_meta["action"],
-                "color": SEGMENT_COLORS[label],
-            }
 
     return assigned
 
@@ -244,3 +292,4 @@ def label_segments(clustered_df: pd.DataFrame) -> Tuple[pd.DataFrame, Dict[int, 
     labeled_df = clustered_df.copy()
     labeled_df["segment"] = labeled_df["cluster"].map(mapping)
     return labeled_df, mapping
+

@@ -211,4 +211,67 @@ def test_clean_id_preserves_leading_zeros_and_distinct_formats():
     assert report.rows_removed_missing_customer == 0
 
 
+def test_clean_transactions_net_returns_policy():
+    """Verify net returns policy retains return rows, tracks refunds, and calculates net revenue correctly."""
+    from src.cleaning import CleaningPolicy
+
+    data = {
+        "InvoiceNo": ["1001", "C1002", "1003"],
+        "CustomerID": ["C1", "C1", "C2"],
+        "InvoiceDate": ["2023-01-01", "2023-01-05", "2023-01-02"],
+        "Quantity": [2, -1, 5],
+        "UnitPrice": [10.0, 10.0, 20.0],
+    }
+    df = pd.DataFrame(data)
+    mapping = {
+        "customer_id": "CustomerID",
+        "invoice_no": "InvoiceNo",
+        "invoice_date": "InvoiceDate",
+        "quantity": "Quantity",
+        "unit_price": "UnitPrice",
+    }
+    policy = CleaningPolicy(policy_type="net", return_time_window_days=30)
+    clean_df, report = clean_transactions(df, mapping, policy=policy)
+
+    assert report.policy_type == "net"
+    assert report.refund_count == 1
+    assert report.refund_amount == 10.0
+    assert report.gross_revenue == 120.0  # 2*10 + 5*20
+    assert report.total_revenue == 110.0  # 120 - 10
+    assert round(report.refund_rate_pct, 2) == 8.33  # 10 / 120 * 100
+    assert len(clean_df) == 3
+    assert "is_refund" in clean_df.columns
+    assert clean_df.loc[clean_df["invoice_no"] == "C1002", "is_refund"].iloc[0] == True
+
+
+def test_export_dataframe_with_custom_currency():
+    """Verify prepare_export_dataframe handles customizable currency symbols in column headers."""
+    from src.export import prepare_export_dataframe
+
+    rfm_df = pd.DataFrame([
+        {
+            "customer_id": "C1",
+            "recency": 10,
+            "frequency": 2,
+            "monetary": 150.0,
+            "r_score": 4,
+            "f_score": 3,
+            "m_score": 4,
+            "rfm_segment": "434",
+            "rfm_score": 3.7,
+            "persona": "Champions",
+            "cluster": 0,
+        }
+    ])
+
+    export_eur = prepare_export_dataframe(rfm_df, currency_symbol="€")
+    assert "Monetary (€)" in export_eur.columns
+    assert "Monetary ($)" not in export_eur.columns
+
+    export_inr = prepare_export_dataframe(rfm_df, currency_symbol="₹")
+    assert "Monetary (₹)" in export_inr.columns
+    assert "Monetary ($)" not in export_inr.columns
+
+
+
 

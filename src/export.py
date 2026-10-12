@@ -11,6 +11,7 @@ import pandas as pd
 def prepare_export_dataframe(
     labeled_df: pd.DataFrame,
     include_dates: bool = True,
+    currency_symbol: str = "$",
 ) -> pd.DataFrame:
     """
     Standardizes column names and formats for external export.
@@ -21,6 +22,8 @@ def prepare_export_dataframe(
         DataFrame containing RFM metrics, cluster ID, and segment label.
     include_dates : bool, default True
         Whether to keep first/last purchase timestamps.
+    currency_symbol : str, default "$"
+        Currency symbol to embed in the monetary header.
 
     Returns
     -------
@@ -34,7 +37,7 @@ def prepare_export_dataframe(
         "customer_id": "Customer ID",
         "recency": "Recency (Days)",
         "frequency": "Frequency (Orders)",
-        "monetary": "Monetary ($)",
+        "monetary": f"Monetary ({currency_symbol})",
         "cluster": "Cluster ID",
         "segment": "Customer Segment",
         "first_purchase": "First Purchase Date",

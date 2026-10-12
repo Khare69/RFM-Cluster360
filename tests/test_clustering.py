@@ -71,3 +71,17 @@ def test_evaluate_clusters_low_variance():
     assert eval_results["best_k"] in eval_results["k_values"]
     assert len(eval_results["k_values"]) > 0
 
+
+def test_preprocess_rfm_preserves_pre_scale_low_variance():
+    """Verify that preprocess_rfm detects near-constant pre-scaled data and prevents inflation to std=1.0."""
+    rfm_df = pd.DataFrame({
+        "customer_id": [f"C{i}" for i in range(20)],
+        "recency": [10.0 + i * 1e-5 for i in range(20)],
+        "frequency": [2.0 for _ in range(20)],
+        "monetary": [100.0 + i * 1e-5 for i in range(20)],
+    })
+    scaled_data, scaler, cols = preprocess_rfm(rfm_df)
+    assert scaled_data.std() < 0.01, "Pre-scale variance guard must prevent inflating tiny noise to std=1"
+    eval_results = evaluate_clusters(scaled_data)
+    assert eval_results.get("is_low_variance") is True
+

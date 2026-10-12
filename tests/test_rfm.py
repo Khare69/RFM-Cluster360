@@ -112,3 +112,35 @@ def test_silhouette_plot_negative_scores():
     assert fig is not None
     assert fig.layout.yaxis.range[0] < 0.0
 
+
+def test_calculate_rfm_with_net_refunds_policy():
+    """Verify RFM calculation nets refund monetary amounts, counts only positive purchase orders, and preserves true purchase recency."""
+    df = pd.DataFrame([
+        # Purchase on 2023-01-01
+        {"customer_id": "C1", "invoice_no": "101", "invoice_date": "2023-01-01", "quantity": 2, "unit_price": 50.0, "is_refund": False},
+        # Refund on 2023-01-10
+        {"customer_id": "C1", "invoice_no": "C102", "invoice_date": "2023-01-10", "quantity": -1, "unit_price": 30.0, "is_refund": True},
+        # Customer C2 with return exceeding purchase (negative net spend bounded to 0.0)
+        {"customer_id": "C2", "invoice_no": "103", "invoice_date": "2023-01-05", "quantity": 1, "unit_price": 20.0, "is_refund": False},
+        {"customer_id": "C2", "invoice_no": "C104", "invoice_date": "2023-01-06", "quantity": -1, "unit_price": 50.0, "is_refund": True},
+    ])
+    rfm = calculate_rfm(df, snapshot_date="2023-01-15")
+    rfm_map = rfm.set_index("customer_id")
+
+    # Customer C1:
+    # Purchase date 2023-01-01 -> Recency = 14 days (NOT 5 days from return!)
+    # Orders = 1 (only purchase 101, NOT C102)
+    # Monetary = 100 - 30 = 70.0
+    c1 = rfm_map.loc["C1"]
+    assert c1["recency"] == 14
+    assert c1["frequency"] == 1
+    assert c1["monetary"] == 70.0
+
+    # Customer C2:
+    # Monetary net is 20 - 50 = -30 -> bounded at 0.0
+    c2 = rfm_map.loc["C2"]
+    assert c2["recency"] == 10
+    assert c2["frequency"] == 1
+    assert c2["monetary"] == 0.0
+
+

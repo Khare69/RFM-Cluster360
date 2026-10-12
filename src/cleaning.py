@@ -10,6 +10,16 @@ import pandas as pd
 
 
 @dataclass
+class CleaningPolicy:
+    """Configurable data cleaning and transaction handling policy."""
+    policy_type: str = "gross"  # "gross" (drop returns/negatives) or "net" (retain refund transactions to net out spend)
+    drop_cancelled_invoices: bool = True  # whether to drop invoices starting with 'C' in gross mode
+    remove_duplicates: bool = False
+    currency: str = "USD"
+    return_time_window_days: Optional[int] = None
+
+
+@dataclass
 class CleaningReport:
     """Structured report tracking every transformation and removed row count."""
     total_rows_before: int
@@ -26,6 +36,12 @@ class CleaningReport:
     rows_removed_invalid_date: int = 0
     duplicate_rows_detected: int = 0
     duplicates_removed: bool = False
+    # Explicit Return & Refund Tracking (Phase 10)
+    policy_type: str = "gross"
+    gross_revenue: float = 0.0
+    refund_amount: float = 0.0
+    refund_count: int = 0
+    refund_rate_pct: float = 0.0
 
     @property
     def total_rows_removed(self) -> int:
@@ -53,6 +69,7 @@ def clean_transactions(
     df: pd.DataFrame,
     mapping: Dict[str, str],
     remove_duplicates: bool = False,
+    policy: Optional[CleaningPolicy] = None,
 ) -> Tuple[pd.DataFrame, CleaningReport]:
     """
     Cleans raw transaction DataFrame according to business rules and produces a transparent report.
@@ -65,12 +82,19 @@ def clean_transactions(
         Mapping of canonical name -> actual column name in df.
     remove_duplicates : bool, default False
         Whether to drop exact duplicate rows.
+    policy : CleaningPolicy, optional
+        Configurable cleaning policy (gross vs net returns, currency, cancellation handling).
 
     Returns
     -------
     Tuple[pd.DataFrame, CleaningReport]
         (Cleaned DataFrame with standardized column names, CleaningReport)
     """
+    if policy is None:
+        policy = CleaningPolicy(remove_duplicates=remove_duplicates)
+    elif remove_duplicates:
+        policy.remove_duplicates = True
+    actual_remove_duplicates = policy.remove_duplicates
     total_rows_before = len(df)
     work_df = df.copy()
 
@@ -125,11 +149,19 @@ def clean_transactions(
     work_df["quantity"] = _to_clean_numeric(work_df["quantity"])
     work_df["unit_price"] = _to_clean_numeric(work_df["unit_price"])
 
-    # Step 4: Handle cancelled transactions (invoice_no starting with 'C' or 'c')
+    # Step 4: Handle cancelled transactions
     work_df["invoice_no_str"] = work_df["invoice_no"].astype(str).str.strip()
-    cancelled_mask = work_df["invoice_no_str"].str.upper().str.startswith("C")
-    rows_cancelled = int(cancelled_mask.sum())
-    work_df = work_df[~cancelled_mask]
+    is_c_invoice = work_df["invoice_no_str"].str.upper().str.startswith("C")
+
+    if policy.policy_type == "net":
+        # In net mode, keep C-invoices that have negative quantity as legitimate return transactions
+        is_cancelled_non_return = is_c_invoice & (work_df["quantity"] >= 0)
+        rows_cancelled = int(is_cancelled_non_return.sum())
+        work_df = work_df[~is_cancelled_non_return]
+    else:
+        # In gross mode, discard all C-invoices as cancellations
+        rows_cancelled = int(is_c_invoice.sum())
+        work_df = work_df[~is_c_invoice]
 
     # Step 4b: Handle null, empty, or placeholder invoice_no (case-insensitive)
     missing_invoice_mask = (
@@ -139,10 +171,17 @@ def clean_transactions(
     rows_missing_invoice = int(missing_invoice_mask.sum())
     work_df = work_df[~missing_invoice_mask].drop(columns=["invoice_no_str"])
 
-    # Step 5: Remove non-positive quantities (returns/adjustments/zeros)
-    non_pos_qty_mask = work_df["quantity"].isna() | (work_df["quantity"] <= 0)
-    rows_non_pos_qty = int(non_pos_qty_mask.sum())
-    work_df = work_df[~non_pos_qty_mask]
+    # Step 5: Handle non-positive quantities (returns vs zero/invalid)
+    if policy.policy_type == "net":
+        # Retain negative quantities as refunds; drop only NaN or 0 quantities
+        zero_or_nan_qty = work_df["quantity"].isna() | (work_df["quantity"] == 0)
+        rows_non_pos_qty = int(zero_or_nan_qty.sum())
+        work_df = work_df[~zero_or_nan_qty]
+    else:
+        # Gross mode: drop all non-positive quantities
+        non_pos_qty_mask = work_df["quantity"].isna() | (work_df["quantity"] <= 0)
+        rows_non_pos_qty = int(non_pos_qty_mask.sum())
+        work_df = work_df[~non_pos_qty_mask]
 
     # Step 6: Remove non-positive unit prices (freebies, damages, data errors)
     non_pos_price_mask = work_df["unit_price"].isna() | (work_df["unit_price"] <= 0)
@@ -156,13 +195,30 @@ def clean_transactions(
     work_df = work_df[~invalid_date_mask]
 
     # Step 8: Optional duplicate removal
-    if remove_duplicates and duplicate_count > 0:
+    if actual_remove_duplicates and duplicate_count > 0:
         work_df = work_df.drop_duplicates()
 
-    # Compute final metrics
+    # Compute final metrics & revenue breakdown
     total_rows_after = len(work_df)
     total_customers = work_df["customer_id"].nunique() if total_rows_after > 0 else 0
-    total_revenue = float((work_df["quantity"] * work_df["unit_price"]).sum()) if total_rows_after > 0 else 0.0
+
+    if total_rows_after > 0:
+        line_totals = work_df["quantity"] * work_df["unit_price"]
+        pos_mask = line_totals > 0
+        neg_mask = line_totals < 0
+        work_df["is_refund"] = neg_mask | work_df["invoice_no"].astype(str).str.upper().str.startswith("C")
+        pos_revenue = float(line_totals[pos_mask].sum()) if pos_mask.any() else 0.0
+        refund_amount = float(abs(line_totals[neg_mask].sum())) if neg_mask.any() else 0.0
+        refund_count = int(neg_mask.sum())
+        refund_rate_pct = round((refund_amount / pos_revenue * 100), 2) if pos_revenue > 0 else 0.0
+        total_revenue = (pos_revenue - refund_amount) if policy.policy_type == "net" else pos_revenue
+    else:
+        work_df["is_refund"] = pd.Series(dtype=bool)
+        pos_revenue = 0.0
+        refund_amount = 0.0
+        refund_count = 0
+        refund_rate_pct = 0.0
+        total_revenue = 0.0
 
     date_min = work_df["invoice_date"].min().strftime("%Y-%m-%d") if total_rows_after > 0 else None
     date_max = work_df["invoice_date"].max().strftime("%Y-%m-%d") if total_rows_after > 0 else None
@@ -181,10 +237,16 @@ def clean_transactions(
         rows_removed_non_positive_price=rows_non_pos_price,
         rows_removed_invalid_date=rows_invalid_date,
         duplicate_rows_detected=duplicate_count,
-        duplicates_removed=remove_duplicates,
+        duplicates_removed=actual_remove_duplicates,
+        policy_type=policy.policy_type,
+        gross_revenue=round(pos_revenue, 2),
+        refund_amount=round(refund_amount, 2),
+        refund_count=refund_count,
+        refund_rate_pct=refund_rate_pct,
     )
 
     # Sort by invoice_date
     work_df = work_df.sort_values("invoice_date").reset_index(drop=True)
 
     return work_df, report
+

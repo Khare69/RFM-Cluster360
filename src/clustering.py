@@ -55,9 +55,16 @@ def preprocess_rfm(
     # Log1p transformation to handle skewness
     log_transformed = np.log1p(data.values)
 
-    # StandardScaler to bring all 3 dimensions to standard normal (mean=0, variance=1)
-    scaler = StandardScaler()
-    scaled_data = scaler.fit_transform(log_transformed)
+    # Pre-scaling variance guard: check log1p(data).std(axis=0) before StandardScaler forces std=1.0
+    feature_stds = np.std(log_transformed, axis=0)
+    if float(np.max(feature_stds)) < 0.01:
+        scaler = StandardScaler(with_std=False)
+        scaler.fit(log_transformed)
+        scaled_data = np.zeros_like(log_transformed)
+    else:
+        # StandardScaler to bring all 3 dimensions to standard normal (mean=0, variance=1)
+        scaler = StandardScaler()
+        scaled_data = scaler.fit_transform(log_transformed)
 
     return scaled_data, scaler, cols
 

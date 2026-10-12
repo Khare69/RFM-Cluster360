@@ -15,10 +15,12 @@ def render_overview_kpis(
     labeled_df: pd.DataFrame,
     cleaning_report: Optional[CleaningReport] = None,
     optimal_k: Optional[int] = None,
+    currency_symbol: Optional[str] = None,
 ):
     """
     Renders top KPI metric cards (Total Customers, Total Revenue, Average Customer Spend, Active Segments).
     """
+    curr_sym = currency_symbol or st.session_state.get("currency_symbol", "$")
     total_customers = len(labeled_df)
     total_revenue = labeled_df["monetary"].sum()
     avg_spend = total_revenue / total_customers if total_customers > 0 else 0.0
@@ -34,16 +36,19 @@ def render_overview_kpis(
         )
 
     with col2:
+        rev_help = "Sum of (quantity * unit_price) across valid completed transactions"
+        if cleaning_report and getattr(cleaning_report, "policy_type", "gross") == "net" and getattr(cleaning_report, "refund_amount", 0.0) > 0:
+            rev_help += f" (Net of {curr_sym}{cleaning_report.refund_amount:,.2f} in refunds)"
         st.metric(
-            label="Total Revenue",
-            value=f"${total_revenue:,.2f}",
-            help="Sum of (quantity * unit_price) across valid completed transactions",
+            label=f"Total Revenue ({curr_sym})",
+            value=f"{curr_sym}{total_revenue:,.2f}",
+            help=rev_help,
         )
 
     with col3:
         st.metric(
-            label="Avg Customer Lifetime Spend",
-            value=f"${avg_spend:,.2f}",
+            label=f"Avg Customer Lifetime Spend ({curr_sym})",
+            value=f"{curr_sym}{avg_spend:,.2f}",
             help="Average total revenue generated per customer",
         )
 
@@ -58,10 +63,14 @@ def render_overview_kpis(
         )
 
 
-def render_persona_cards_grid(labeled_df: pd.DataFrame):
+def render_persona_cards_grid(
+    labeled_df: pd.DataFrame,
+    currency_symbol: Optional[str] = None,
+):
     """
     Renders styled cards for each customer persona with strategic recommendations.
     """
+    curr_sym = currency_symbol or st.session_state.get("currency_symbol", "$")
     total_cust = len(labeled_df)
     total_rev = labeled_df["monetary"].sum()
 
@@ -108,8 +117,9 @@ def render_persona_cards_grid(labeled_df: pd.DataFrame):
                 # Metrics bar
                 m1, m2, m3 = st.columns(3)
                 m1.caption(f"**Customers:** {c_count:,} ({c_pct:.1f}%)")
-                m2.caption(f"**Revenue:** ${r_sum:,.0f} ({r_pct:.1f}%)")
-                m3.caption(f"**Avg Spend:** ${row['avg_monetary']:,.1f}")
+                m2.caption(f"**Revenue:** {curr_sym}{r_sum:,.0f} ({r_pct:.1f}%)")
+                m3.caption(f"**Avg Spend:** {curr_sym}{row['avg_monetary']:,.1f}")
 
                 st.markdown(f"**Profile:** {persona_info['description']}")
                 st.info(f"**🎯 Recommended Action:** {persona_info['action']}")
+

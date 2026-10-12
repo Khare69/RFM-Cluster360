@@ -46,6 +46,7 @@ cust_rfm = matching.iloc[0]
 cust_segment = cust_rfm["segment"]
 persona_meta = PERSONA_DEFINITIONS.get(cust_segment, {})
 seg_color = SEGMENT_COLORS.get(cust_segment, "#4A90E2")
+curr_sym = st.session_state.get("currency_symbol", "$")
 
 # Summary Header Card
 with st.container(border=True):
@@ -58,7 +59,7 @@ with st.container(border=True):
             st.caption(f"📍 Location: **{cust_rfm['country']}**")
 
     with h2:
-        st.metric("Total Spend (M)", f"${cust_rfm['monetary']:,.2f}")
+        st.metric(f"Total Spend ({curr_sym})", f"{curr_sym}{cust_rfm['monetary']:,.2f}")
     with h3:
         st.metric("Total Orders (F)", f"{int(cust_rfm['frequency'])} orders")
     with h4:

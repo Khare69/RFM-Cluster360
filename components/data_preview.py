@@ -81,10 +81,14 @@ def render_column_mapping_ui(
     return confirmed_mapping
 
 
-def render_cleaning_report_card(report: CleaningReport):
+def render_cleaning_report_card(
+    report: CleaningReport,
+    currency_symbol: Optional[str] = None,
+):
     """
     Renders transparent cleaning summary and before/after metrics.
     """
+    curr_sym = currency_symbol or st.session_state.get("currency_symbol", "$")
     st.markdown("#### 🧹 Step 2: Data Cleaning & Hygiene Audit")
     
     col1, col2, col3, col4 = st.columns(4)
@@ -95,7 +99,14 @@ def render_cleaning_report_card(report: CleaningReport):
     with col3:
         st.metric("Cleaned Customers", f"{report.total_customers:,}")
     with col4:
-        st.metric("Cleaned Revenue", f"${report.total_revenue:,.2f}")
+        st.metric(f"Cleaned Revenue ({curr_sym})", f"{curr_sym}{report.total_revenue:,.2f}")
+
+    if getattr(report, "policy_type", "gross") == "net" and getattr(report, "refund_amount", 0.0) > 0:
+        st.info(
+            f"🔄 **Net Returns Accounting Applied:** Gross Spend: **{curr_sym}{report.gross_revenue:,.2f}** | "
+            f"Refunds Deducted: **-{curr_sym}{report.refund_amount:,.2f}** "
+            f"({report.refund_count:,} refund orders, **{report.refund_rate_pct}%** return rate)."
+        )
 
     # Itemized removal breakdown
     if report.total_rows_removed > 0:

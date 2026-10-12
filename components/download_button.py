@@ -14,10 +14,12 @@ from src.export import prepare_export_dataframe, to_csv_bytes, to_parquet_bytes
 def render_export_section(
     labeled_df: pd.DataFrame,
     title: str = "📥 Export Customer Segments",
+    currency_symbol: Optional[str] = None,
 ):
     """
     Renders export options for CSV, Apache Parquet, and direct AWS S3 upload.
     """
+    curr_sym = currency_symbol or st.session_state.get("currency_symbol", "$")
     st.markdown(f"### {title}")
     st.markdown(
         "Export the complete segmented customer base with RFM scores, cluster IDs, and persona labels "
@@ -37,7 +39,11 @@ def render_export_section(
                 horizontal=True,
             )
 
-        export_df = prepare_export_dataframe(labeled_df, include_dates=include_dates)
+        export_df = prepare_export_dataframe(
+            labeled_df,
+            include_dates=include_dates,
+            currency_symbol=curr_sym,
+        )
         timestamp_str = datetime.now().strftime("%Y%m%d_%H%M")
 
         if "Parquet" in export_format:

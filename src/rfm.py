@@ -112,17 +112,30 @@ def calculate_rfm(
 
     # Flatten multi-index columns
     rfm = pd.DataFrame()
-    rfm["customer_id"] = grouped.index.astype(str)
+    cust_ids = grouped.index.astype(str)
+    rfm["customer_id"] = cust_ids
     
     last_dates = grouped[("invoice_date", "max")]
     first_dates = grouped[("invoice_date", "min")]
     
+    # Recency: based on latest purchase order if available, else latest transaction
+    pos_orders = work_df[work_df["quantity"] > 0]
+    if not pos_orders.empty:
+        pos_last_dates = pos_orders.groupby("customer_id")["invoice_date"].max()
+        effective_last_dates = pos_last_dates.reindex(grouped.index).fillna(last_dates)
+        pos_freq_series = pos_orders.groupby("customer_id")["invoice_no"].nunique()
+        freq_vals = pos_freq_series.reindex(grouped.index).fillna(1).values
+    else:
+        effective_last_dates = last_dates
+        freq_vals = grouped[("invoice_no", "nunique")].values
+
     # Recency in days
-    rfm["recency"] = (snap_dt - last_dates).dt.days.values
-    # Frequency (count of unique invoices, minimum 1)
-    rfm["frequency"] = np.maximum(1, grouped[("invoice_no", "nunique")].values.astype(int))
-    # Monetary (sum of line totals)
-    rfm["monetary"] = np.round(grouped[("line_total", "sum")].values.astype(float), 2)
+    rfm["recency"] = (snap_dt - effective_last_dates).dt.days.values
+    # Frequency (count of unique purchase orders, minimum 1)
+    rfm["frequency"] = np.maximum(1, np.nan_to_num(freq_vals, nan=1.0).astype(int))
+    # Monetary (sum of line totals, defensively bounded at 0.0 for log1p)
+    raw_monetary = np.round(grouped[("line_total", "sum")].values.astype(float), 2)
+    rfm["monetary"] = np.maximum(0.0, raw_monetary)
     
     rfm["first_purchase"] = first_dates.values
     rfm["last_purchase"] = last_dates.values
