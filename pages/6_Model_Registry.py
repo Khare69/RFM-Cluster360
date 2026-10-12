@@ -344,8 +344,10 @@ with tab_inference:
             step=1.0,
             help="Total count of completed transactions.",
         )
+        curr_code = st.session_state.get("currency_code", "USD")
+        curr_sym = st.session_state.get("currency_symbol", "$")
         monetary_val = st.number_input(
-            "Monetary Spend (Total lifetime revenue in USD)",
+            f"Monetary Spend (Total lifetime revenue in {curr_code} {curr_sym})",
             min_value=0.0,
             max_value=100000.0,
             value=1250.0,

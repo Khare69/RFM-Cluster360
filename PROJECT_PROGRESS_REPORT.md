@@ -437,7 +437,7 @@ Throughout the project, several significant architectural pivots were made based
 
 ## 6. Automated Test Suite & Quality Assurance Growth
 
-The test suite expanded systematically across every phase, growing from **0 tests** at project bootstrap to **65 passing tests**:
+The test suite expanded systematically across every phase, growing from **0 tests** at project bootstrap to **68 passing tests**:
 
 ```
 Growth Timeline:
@@ -451,7 +451,8 @@ Phase 6: 34 tests (Docker configuration & container validation suite)
 Phase 7: 46 tests (Model registry serialization & inference suite)
 Phase 8: 51 tests (CI/CD configuration & dependency split suite)
 Phase 9: 59 tests (Security containment, memory limits & ID normalization suite)
-Phase 10: 65 tests (Analytical correctness, pre-scale variance, rule-based personas, net returns & currency localization suite)
+Phase 10: 65 tests (Analytical correctness, pre-scale variance, rule-based personas & net returns suite)
+Hardening: 68 tests (End-to-end currency localization, bracket indexing & typing audit suite)
 ```
 
 ### Test Suite Breakdown
@@ -466,9 +467,9 @@ Phase 10: 65 tests (Analytical correctness, pre-scale variance, rule-based perso
 | [`tests/test_docker_config.py`](tests/test_docker_config.py) | **3** | Dockerfile syntax, unprivileged user configuration, compose file integrity |
 | [`tests/test_ingestion.py`](tests/test_ingestion.py) | **9** | CSV parsing, `StringIO` streams, duplicate mapping rejection, sample dataset integrity |
 | [`tests/test_model_registry.py`](tests/test_model_registry.py) | **9** | Artifact serialization, version cataloging, single-customer inference, AppTest smoke tests |
-| [`tests/test_personas.py`](tests/test_personas.py) | **4** | Composite percentile ranking, $k=10$ unique collision labels, rule-based classification, global dictionary immutability |
-| [`tests/test_rfm.py`](tests/test_rfm.py) | **8** | Recency/Frequency/Monetary math, zero-spend customer handling, aggregation correctness, net refund RFM handling & recency protection |
-| **Total** | **65** | **100% Pass Rate (0 failures, 0 skipped, execution time ~15s)** |
+| [`tests/test_personas.py`](tests/test_personas.py) | **4** | Composite percentile ranking, $k=10$ unique collision labels, rule-based classification, global dictionary immutability, bracket indexing |
+| [`tests/test_rfm.py`](tests/test_rfm.py) | **11** | Recency/Frequency/Monetary math, zero-spend customer handling, aggregation correctness, net refund RFM handling, currency visualization suite |
+| **Total** | **68** | **100% Pass Rate (0 failures, 0 skipped, execution time ~15s)** |
 
 ---
 

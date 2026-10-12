@@ -12,7 +12,10 @@ from plotly.subplots import make_subplots
 from config.settings import SEGMENT_COLORS
 
 
-def rfm_histograms(rfm_df: pd.DataFrame) -> go.Figure:
+def rfm_histograms(
+    rfm_df: pd.DataFrame,
+    currency_symbol: str = "$",
+) -> go.Figure:
     """
     Three side-by-side distribution subplots for Recency, Frequency, and Monetary.
     """
@@ -22,7 +25,7 @@ def rfm_histograms(rfm_df: pd.DataFrame) -> go.Figure:
         subplot_titles=(
             "Recency Distribution (Days)",
             "Frequency Distribution (Orders)",
-            "Monetary Distribution ($ Total Spend)",
+            f"Monetary Distribution ({currency_symbol} Total Spend)",
         ),
     )
 
@@ -74,7 +77,7 @@ def rfm_histograms(rfm_df: pd.DataFrame) -> go.Figure:
     )
     fig.update_xaxes(title_text="Days", row=1, col=1)
     fig.update_xaxes(title_text="Orders", row=1, col=2)
-    fig.update_xaxes(title_text="Spend ($)", row=1, col=3)
+    fig.update_xaxes(title_text=f"Spend ({currency_symbol})", row=1, col=3)
     fig.update_yaxes(title_text="Customer Count", row=1, col=1)
 
     return fig

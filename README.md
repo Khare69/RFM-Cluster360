@@ -9,7 +9,7 @@
 [![Apache Parquet](https://img.shields.io/badge/Format-Apache%20Parquet-teal.svg)](https://parquet.apache.org/)
 [![Docker](https://img.shields.io/badge/Docker-Containerized-2496ED.svg?logo=docker&logoColor=white)](Dockerfile)
 [![MLOps](https://img.shields.io/badge/MLOps-Model%20Registry-blueviolet.svg)](#-mlops-model-artifact-registry)
-[![Tests](https://img.shields.io/badge/Tests-65%20Passed-brightgreen.svg)](#-running-the-test-suite)
+[![Tests](https://img.shields.io/badge/Tests-68%20Passed-brightgreen.svg)](#-running-the-test-suite)
 [![Report](https://img.shields.io/badge/Report-Project%20Progress%20%26%20Bugs-informational.svg)](PROJECT_PROGRESS_REPORT.md)
 [![License](https://img.shields.io/badge/License-Apache_2.0-green.svg)](LICENSE)
 
@@ -562,19 +562,22 @@ tests/test_model_registry.py::test_delete_model_version PASSED           [ 78%]
 tests/test_model_registry.py::test_save_model_type_validation PASSED     [ 80%]
 tests/test_model_registry.py::test_model_registry_page_apptest_smoke PASSED [ 81%]
 tests/test_personas.py::test_label_segments_with_synthetic PASSED        [ 83%]
-tests/test_personas.py::test_label_segments_k10_unique_labels PASSED     [ 84%]
-tests/test_personas.py::test_classify_cluster_rule_based_behavior PASSED [ 86%]
-tests/test_personas.py::test_get_persona_metadata_and_colors_no_mutation PASSED [ 87%]
-tests/test_rfm.py::test_calculate_rfm_hand_calculated PASSED             [ 89%]
-tests/test_rfm.py::test_default_snapshot_date PASSED                     [ 90%]
-tests/test_rfm.py::test_calculate_rfm_snapshot_in_past_error PASSED      [ 92%]
-tests/test_rfm.py::test_get_rfm_summary_stats PASSED                     [ 93%]
-tests/test_rfm.py::test_rfm_summary_scatter_zero_monetary PASSED         [ 95%]
-tests/test_rfm.py::test_calculate_rfm_defensive_invoice_filtering PASSED [ 96%]
-tests/test_rfm.py::test_silhouette_plot_negative_scores PASSED           [ 98%]
-tests/test_rfm.py::test_calculate_rfm_with_net_refunds_policy PASSED     [100%]
+tests/test_personas.py::test_label_segments_k10_unique_labels PASSED     [ 80%]
+tests/test_personas.py::test_classify_cluster_rule_based_behavior PASSED [ 82%]
+tests/test_personas.py::test_get_persona_metadata_and_colors_no_mutation PASSED [ 83%]
+tests/test_rfm.py::test_calculate_rfm_hand_calculated PASSED             [ 85%]
+tests/test_rfm.py::test_default_snapshot_date PASSED                     [ 86%]
+tests/test_rfm.py::test_calculate_rfm_snapshot_in_past_error PASSED      [ 88%]
+tests/test_rfm.py::test_get_rfm_summary_stats PASSED                     [ 89%]
+tests/test_rfm.py::test_rfm_summary_scatter_zero_monetary PASSED         [ 91%]
+tests/test_rfm.py::test_calculate_rfm_defensive_invoice_filtering PASSED [ 92%]
+tests/test_rfm.py::test_silhouette_plot_negative_scores PASSED           [ 94%]
+tests/test_rfm.py::test_calculate_rfm_with_net_refunds_policy PASSED     [ 95%]
+tests/test_rfm.py::test_rfm_histograms_custom_currency PASSED            [ 97%]
+tests/test_rfm.py::test_cluster_scatter_custom_currency PASSED           [ 98%]
+tests/test_rfm.py::test_customer_timeline_and_benchmark_custom_currency PASSED [100%]
 
-============================= 65 passed in 15.40s =============================
+============================= 68 passed in 15.20s =============================
 ```
 
 ---

@@ -14,6 +14,7 @@ from config.settings import SEGMENT_COLORS
 def scatter_3d_clusters(
     labeled_df: pd.DataFrame,
     use_log_monetary: bool = False,
+    currency_symbol: str = "$",
 ) -> go.Figure:
     """
     Interactive 3D scatter plot of customers positioned by Recency, Frequency, and Monetary values.
@@ -24,6 +25,8 @@ def scatter_3d_clusters(
         DataFrame containing 'recency', 'frequency', 'monetary', and 'segment'.
     use_log_monetary : bool, default False
         Whether to plot log-transformed monetary scale for better outlier visibility.
+    currency_symbol : str, default "$"
+        Currency symbol to display in axis labels and hover data.
 
     Returns
     -------
@@ -32,12 +35,12 @@ def scatter_3d_clusters(
     """
     plot_df = labeled_df.copy()
     z_col = "monetary"
-    z_title = "Monetary ($ Total Spend)"
+    z_title = f"Monetary ({currency_symbol} Total Spend)"
 
     if use_log_monetary:
         plot_df["log_monetary"] = np.log10(plot_df["monetary"].clip(lower=1))
         z_col = "log_monetary"
-        z_title = "Monetary (Log10 $)"
+        z_title = f"Monetary (Log10 {currency_symbol})"
 
     fig = px.scatter_3d(
         plot_df,
@@ -50,7 +53,7 @@ def scatter_3d_clusters(
         hover_data={
             "recency": True,
             "frequency": True,
-            "monetary": ":$,.2f",
+            "monetary": ":,.2f",
             "segment": True,
             z_col: False,
         },
@@ -91,7 +94,10 @@ def scatter_3d_clusters(
     return fig
 
 
-def scatter_2d_projections(labeled_df: pd.DataFrame) -> go.Figure:
+def scatter_2d_projections(
+    labeled_df: pd.DataFrame,
+    currency_symbol: str = "$",
+) -> go.Figure:
     """
     Pairwise 2D projections: Recency vs Frequency, Recency vs Monetary, Frequency vs Monetary.
     """
@@ -100,8 +106,8 @@ def scatter_2d_projections(labeled_df: pd.DataFrame) -> go.Figure:
         cols=3,
         subplot_titles=(
             "Recency vs Frequency",
-            "Recency vs Monetary (Log)",
-            "Frequency vs Monetary (Log)",
+            f"Recency vs Monetary ({currency_symbol} Log)",
+            f"Frequency vs Monetary ({currency_symbol} Log)",
         ),
     )
 
@@ -137,7 +143,7 @@ def scatter_2d_projections(labeled_df: pd.DataFrame) -> go.Figure:
                 legendgroup=seg,
                 showlegend=False,
                 marker=dict(color=color, size=6, opacity=0.7),
-                hovertemplate="Cust: %{text}<br>R: %{x}d<br>M: $%{y:,.2f}<extra></extra>",
+                hovertemplate=f"Cust: %{{text}}<br>R: %{{x}}d<br>M: {currency_symbol}%{{y:,.2f}}<extra></extra>",
                 text=seg_data["customer_id"],
             ),
             row=1,
@@ -154,7 +160,7 @@ def scatter_2d_projections(labeled_df: pd.DataFrame) -> go.Figure:
                 legendgroup=seg,
                 showlegend=False,
                 marker=dict(color=color, size=6, opacity=0.7),
-                hovertemplate="Cust: %{text}<br>F: %{x}<br>M: $%{y:,.2f}<extra></extra>",
+                hovertemplate=f"Cust: %{{text}}<br>F: %{{x}}<br>M: {currency_symbol}%{{y:,.2f}}<extra></extra>",
                 text=seg_data["customer_id"],
             ),
             row=1,
@@ -168,10 +174,10 @@ def scatter_2d_projections(labeled_df: pd.DataFrame) -> go.Figure:
     fig.update_yaxes(title_text="Frequency (Orders)", row=1, col=1)
 
     fig.update_xaxes(title_text="Recency (Days)", row=1, col=2)
-    fig.update_yaxes(title_text="Monetary ($ Log)", row=1, col=2)
+    fig.update_yaxes(title_text=f"Monetary ({currency_symbol} Log)", row=1, col=2)
 
     fig.update_xaxes(title_text="Frequency (Orders)", row=1, col=3)
-    fig.update_yaxes(title_text="Monetary ($ Log)", row=1, col=3)
+    fig.update_yaxes(title_text=f"Monetary ({currency_symbol} Log)", row=1, col=3)
 
     fig.update_layout(
         margin=dict(l=20, r=20, t=50, b=20),

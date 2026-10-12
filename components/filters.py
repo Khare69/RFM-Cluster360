@@ -2,7 +2,7 @@
 Sidebar filtering component across all dashboard views.
 """
 
-from typing import Tuple
+from typing import Optional, Tuple
 import pandas as pd
 import streamlit as st
 
@@ -10,6 +10,7 @@ import streamlit as st
 def render_sidebar_filters(
     labeled_df: pd.DataFrame,
     key_prefix: str = "filter",
+    currency_symbol: Optional[str] = None,
 ) -> pd.DataFrame:
     """
     Renders filter controls in the sidebar and returns the filtered DataFrame.
@@ -54,6 +55,7 @@ def render_sidebar_filters(
         )
 
     # Monetary spend slider
+    curr_sym = currency_symbol or st.session_state.get("currency_symbol", "$")
     min_spend = float(labeled_df["monetary"].min())
     max_spend = float(labeled_df["monetary"].max())
     
@@ -61,7 +63,7 @@ def render_sidebar_filters(
         diff = max_spend - min_spend
         step_val = min(max(0.01, round(diff / 100, 2)), diff)
         spend_range = st.sidebar.slider(
-            "Filter by Total Spend ($)",
+            f"Filter by Total Spend ({curr_sym})",
             min_value=float(min_spend),
             max_value=float(max_spend),
             value=(float(min_spend), float(max_spend)),

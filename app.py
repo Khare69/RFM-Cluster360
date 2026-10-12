@@ -350,7 +350,11 @@ def main():
 
             # Column auto-mapping
             auto_detected = auto_map_columns(raw_df)
-            user_mapping = render_column_mapping_ui(raw_df, auto_detected)
+            user_mapping = render_column_mapping_ui(
+                raw_df,
+                auto_detected,
+                currency_symbol=st.session_state.get("currency_symbol", "$"),
+            )
 
             is_valid, missing_cols = validate_mapping(user_mapping)
 

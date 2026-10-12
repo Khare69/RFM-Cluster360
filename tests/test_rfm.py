@@ -144,3 +144,51 @@ def test_calculate_rfm_with_net_refunds_policy():
     assert c2["monetary"] == 0.0
 
 
+def test_rfm_histograms_custom_currency():
+    """Verify rfm_histograms properly formats axis and subplot titles with selected currency symbol."""
+    from viz.rfm_charts import rfm_histograms
+
+    df = pd.DataFrame([
+        {"customer_id": "C1", "recency": 10, "frequency": 2, "monetary": 150.0},
+        {"customer_id": "C2", "recency": 20, "frequency": 3, "monetary": 300.0},
+    ])
+    fig = rfm_histograms(df, currency_symbol="€")
+    assert fig is not None
+    assert "€ Total Spend" in fig.layout.annotations[2].text
+
+
+def test_cluster_scatter_custom_currency():
+    """Verify 3D and 2D cluster scatter projections format axes and hover templates with custom currency."""
+    from viz.cluster_scatter import scatter_2d_projections, scatter_3d_clusters
+
+    df = pd.DataFrame([
+        {"customer_id": "C1", "recency": 10, "frequency": 2, "monetary": 150.0, "segment": "Champions"},
+        {"customer_id": "C2", "recency": 30, "frequency": 1, "monetary": 50.0, "segment": "At Risk"},
+    ])
+    fig_3d = scatter_3d_clusters(df, currency_symbol="₹")
+    assert fig_3d is not None
+
+    fig_2d = scatter_2d_projections(df, currency_symbol="₹")
+    assert fig_2d is not None
+    assert "Monetary (₹ Log)" in fig_2d.layout.yaxis2.title.text
+
+
+def test_customer_timeline_and_benchmark_custom_currency():
+    """Verify customer purchase timeline and benchmark charts reflect custom currency symbol."""
+    from viz.customer_timeline import customer_benchmark_bar, customer_purchase_timeline
+
+    rfm_df = pd.DataFrame([
+        {"customer_id": "C1", "recency": 10, "frequency": 2, "monetary": 150.0},
+        {"customer_id": "C2", "recency": 30, "frequency": 1, "monetary": 50.0},
+    ])
+    tx_df = pd.DataFrame([
+        {"invoice_no": "101", "invoice_date": pd.to_datetime("2023-01-01"), "quantity": 2, "unit_price": 75.0, "line_total": 150.0},
+    ])
+    fig_bench = customer_benchmark_bar(rfm_df.iloc[0], rfm_df, currency_symbol="£")
+    assert "£150.00" in fig_bench.data[0].text[2]
+
+    fig_timeline = customer_purchase_timeline(tx_df, "C1", currency_symbol="£")
+    assert "Order Total (£)" in fig_timeline.layout.yaxis.title.text
+
+
+

@@ -7,7 +7,7 @@ from typing import Dict, List, Optional, Tuple
 import numpy as np
 import pandas as pd
 
-from config.settings import SEGMENT_COLORS
+from config.settings import SEGMENT_COLORS as _BASE_SEGMENT_COLORS
 
 import re
 
@@ -35,6 +35,14 @@ class _PersonaDefinitionsDict(dict):
 
 class _SegmentColorsDict(dict):
     """Dict wrapper that dynamically resolves tier qualifiers to base persona colors without mutating global state."""
+    def __getitem__(self, key):
+        if key not in self:
+            base_key = re.sub(r"\s*\(Tier \d+\)$", "", key) if isinstance(key, str) else key
+            if base_key in self:
+                return super().__getitem__(base_key)
+            return "#7f7f7f"
+        return super().__getitem__(key)
+
     def get(self, key, default=None):
         if key in self:
             return self[key]
@@ -43,6 +51,8 @@ class _SegmentColorsDict(dict):
             return self[base_key]
         return default if default is not None else "#7f7f7f"
 
+
+SEGMENT_COLORS: Dict[str, str] = _SegmentColorsDict(_BASE_SEGMENT_COLORS)
 
 # Detailed persona definitions with descriptions and marketing recommendations
 _BASE_PERSONA_DEFINITIONS: Dict[str, Dict[str, str]] = {

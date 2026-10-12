@@ -13,6 +13,7 @@ from src.cleaning import CleaningReport
 def render_column_mapping_ui(
     df: pd.DataFrame,
     detected_mapping: Dict[str, Optional[str]],
+    currency_symbol: Optional[str] = None,
 ) -> Dict[str, str]:
     """
     Renders an interactive UI where the user can verify and adjust column mappings.
@@ -23,12 +24,15 @@ def render_column_mapping_ui(
         Raw uploaded dataframe.
     detected_mapping : dict
         Canonical name -> detected column name.
+    currency_symbol : str, optional
+        Active currency symbol to display in price label.
 
     Returns
     -------
     Dict[str, str]
         User-confirmed mapping.
     """
+    curr_sym = currency_symbol or st.session_state.get("currency_symbol", "$")
     st.markdown("#### 🔗 Step 1: Verify Column Mapping")
     st.markdown(
         "We automatically scanned your column headers. "
@@ -45,7 +49,7 @@ def render_column_mapping_ui(
         "invoice_no": "Invoice / Order # *",
         "invoice_date": "Transaction Date *",
         "quantity": "Quantity *",
-        "unit_price": "Unit Price ($) *",
+        "unit_price": f"Unit Price ({curr_sym}) *",
     }
 
     for i, canonical in enumerate(REQUIRED_COLUMNS):

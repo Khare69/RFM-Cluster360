@@ -76,7 +76,7 @@ st.markdown("---")
 # Percentile Benchmark
 st.subheader("📊 Customer Benchmark Ranking")
 st.markdown("See where this customer ranks across Recency, Frequency, and Monetary relative to your entire customer base.")
-fig_bench = customer_benchmark_bar(cust_rfm, labeled_df)
+fig_bench = customer_benchmark_bar(cust_rfm, labeled_df, currency_symbol=curr_sym)
 st.plotly_chart(fig_bench, use_container_width=True)
 
 st.markdown("---")
@@ -86,7 +86,7 @@ st.subheader("🕒 Purchase History Timeline")
 cust_transactions = clean_df[clean_df["customer_id"].astype(str) == str(selected_id)].copy()
 
 if not cust_transactions.empty:
-    fig_timeline = customer_purchase_timeline(cust_transactions, selected_id)
+    fig_timeline = customer_purchase_timeline(cust_transactions, selected_id, currency_symbol=curr_sym)
     st.plotly_chart(fig_timeline, use_container_width=True)
 
     with st.expander(f"🧾 View Itemized Transaction Records ({len(cust_transactions)} items)"):

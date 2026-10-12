@@ -43,10 +43,15 @@ tab_dist, tab_ml, tab_dna = st.tabs([
 
 with tab_dist:
     st.subheader("Distribution of R, F, and M Metrics")
+    curr_sym = st.session_state.get("currency_symbol", "$")
+    snap_dt = st.session_state.get("snapshot_date")
+    if snap_dt:
+        snap_str = snap_dt.strftime("%Y-%m-%d") if hasattr(snap_dt, "strftime") else str(snap_dt)
+        st.info(f"📅 **Observation Window Snapshot Date:** `{snap_str}` — Recency measures the elapsed days between this reference date and each customer's latest purchase.")
     st.markdown(
         "Observe the natural skewness across your customer base. Monetary spend and order frequency typically follow an 80/20 power-law distribution."
     )
-    fig_hist = rfm_histograms(filtered_df)
+    fig_hist = rfm_histograms(filtered_df, currency_symbol=curr_sym)
     st.plotly_chart(fig_hist, use_container_width=True)
 
     st.markdown("#### 📐 Statistical Summary Percentiles")

@@ -11,6 +11,7 @@ import plotly.graph_objects as go
 def customer_purchase_timeline(
     customer_tx_df: pd.DataFrame,
     customer_id: str,
+    currency_symbol: str = "$",
 ) -> go.Figure:
     """
     Timeline of individual orders placed by a single customer over time.
@@ -62,12 +63,12 @@ def customer_purchase_timeline(
         hover_name="invoice_no",
         hover_data={
             "invoice_date": "|%Y-%m-%d %H:%M",
-            "order_total": ":$,.2f",
+            "order_total": ":,.2f",
             "item_count": True,
         },
         labels={
             "invoice_date": "Order Date",
-            "order_total": "Order Total ($)",
+            "order_total": f"Order Total ({currency_symbol})",
             "item_count": "Total Items",
         },
         title=f"Purchase History Timeline — Customer {customer_id} ({len(orders)} Orders)",
@@ -98,6 +99,7 @@ def customer_purchase_timeline(
 def customer_benchmark_bar(
     cust_rfm: pd.Series,
     all_rfm: pd.DataFrame,
+    currency_symbol: str = "$",
 ) -> go.Figure:
     """
     Percentile comparison chart showing where this customer ranks across R, F, and M compared to all customers.
@@ -118,7 +120,7 @@ def customer_benchmark_bar(
         "Raw Value": [
             f"{int(cust_rfm['recency'])} days ago",
             f"{int(cust_rfm['frequency'])} orders",
-            f"${cust_rfm['monetary']:,.2f}",
+            f"{currency_symbol}{cust_rfm['monetary']:,.2f}",
         ],
     })
 

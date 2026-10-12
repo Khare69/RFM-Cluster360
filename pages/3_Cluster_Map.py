@@ -22,7 +22,8 @@ st.markdown(
     "Each point is a customer, colored by their assigned behavioral segment."
 )
 
-filtered_df = render_sidebar_filters(st.session_state.labeled_df, key_prefix="map_3d")
+curr_sym = st.session_state.get("currency_symbol", "$")
+filtered_df = render_sidebar_filters(st.session_state.labeled_df, key_prefix="map_3d", currency_symbol=curr_sym)
 
 if filtered_df.empty:
     st.warning("No customers match the current filter selection.")
@@ -37,12 +38,12 @@ with col_opt2:
     st.caption("💡 **Tip:** Click and drag to rotate the 3D plot. Scroll to zoom in/out. Hover over any node to inspect customer details.")
 
 # 3D Plot
-fig_3d = scatter_3d_clusters(filtered_df, use_log_monetary=use_log)
+fig_3d = scatter_3d_clusters(filtered_df, use_log_monetary=use_log, currency_symbol=curr_sym)
 st.plotly_chart(fig_3d, use_container_width=True)
 
 st.markdown("---")
 st.subheader("📐 2D Cross-Section Projections")
 st.markdown("View pairwise projections of the 3D space to isolate relationships between two dimensions at a time.")
 
-fig_2d = scatter_2d_projections(filtered_df)
+fig_2d = scatter_2d_projections(filtered_df, currency_symbol=curr_sym)
 st.plotly_chart(fig_2d, use_container_width=True)

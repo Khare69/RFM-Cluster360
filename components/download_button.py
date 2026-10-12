@@ -4,6 +4,7 @@ Export UI component for one-click downloading of segmented customer data.
 
 from datetime import datetime
 import os
+from typing import Optional
 import pandas as pd
 import streamlit as st
 

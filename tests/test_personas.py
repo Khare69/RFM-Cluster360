@@ -88,7 +88,12 @@ def test_get_persona_metadata_and_colors_no_mutation():
     color_tier3 = get_segment_color("At Risk (Tier 3)")
     assert color_tier3 == SEGMENT_COLORS["At Risk"]
 
+    # Verify bracket notation on SEGMENT_COLORS works seamlessly with Tier qualifiers
+    assert SEGMENT_COLORS["Champions (Tier 2)"] == SEGMENT_COLORS["Champions"]
+    assert SEGMENT_COLORS["Unknown Segment (Tier 9)"] == "#7f7f7f"
+
     # Verify that global dictionary keys were not mutated
     assert set(PERSONA_DEFINITIONS.keys()) == initial_keys
+
 
 
