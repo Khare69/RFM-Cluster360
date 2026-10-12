@@ -3,14 +3,14 @@
 > **Project:** RFM Cluster360 — Enterprise Customer Segmentation & MLOps Platform  
 > **Repository:** [`github.com/Khare69/RFM-Cluster360`](https://github.com/Khare69/RFM-Cluster360)  
 > **Report Timestamp:** October 2026  
-> **Current Status:** Phases 0 through 9 Completed (100% Pass Rate across 59 Automated Tests)
+> **Current Status:** Phases 0 through 10 Completed + Hardening Audit (100% Pass Rate across 68 Automated Tests)
 
 ---
 
 ## Table of Contents
 
 1. [Executive Summary & High-Level Milestones](#1-executive-summary--high-level-milestones)
-2. [Chronological Project Evolution (Phases 0–9)](#2-chronological-project-evolution-phases-09)
+2. [Chronological Project Evolution (Phases 0–10 + Hardening)](#2-chronological-project-evolution-phases-010--hardening)
 3. [Comprehensive Bug, Error & Vulnerability Catalog](#3-comprehensive-bug-error--vulnerability-catalog)
    - [3.1 Critical Runtime Crashes & Unhandled Exceptions](#31-critical-runtime-crashes--unhandled-exceptions)
    - [3.2 Silent Data Corruption & Ingestion Flaws](#32-silent-data-corruption--ingestion-flaws)
@@ -21,7 +21,8 @@
 5. [Architectural Pivots & Plan Evolution](#5-architectural-pivots--plan-evolution)
 6. [Automated Test Suite & Quality Assurance Growth](#6-automated-test-suite--quality-assurance-growth)
 7. [Git Commit Audit Trail](#7-git-commit-audit-trail)
-8. [Upcoming Roadmap & Next Phases (Phases 10–12)](#8-upcoming-roadmap--next-phases-phases-1012)
+8. [Upcoming Roadmap & Next Phases (Phases 11–12)](#8-upcoming-roadmap--next-phases-phases-1112)
+9. [Implementation Plan Archive & Historical Master Record](#9-implementation-plan-archive--historical-master-record)
 
 ---
 
@@ -40,11 +41,11 @@ Over the course of 10 structured engineering iterations (**Phases 0 through 9**)
 
 ### Platform Health Metrics at a Glance
 
-| Metric | Day 1 (Phase 0) | Current State (Phase 9) |
+| Metric | Day 1 (Phase 0) | Current State (Phase 10 + Hardening) |
 |---|:---:|:---:|
-| **Automated Unit & Integration Tests** | 0 tests | **59 tests (100% pass rate in ~12s)** |
+| **Automated Unit & Integration Tests** | 0 tests | **68 tests (100% pass rate in ~14s)** |
 | **Test Suites** | 0 files | **10 test suites** (`tests/test_*.py`) |
-| **Git Commits** | 1 initial commit | **19 semantic commits** |
+| **Git Commits** | 1 initial commit | **22 semantic commits** |
 | **Supported Storage Backends** | Local CSV only | **Local CSV, Apache Parquet, AWS S3, Mock S3** |
 | **Containerization** | None | **Production Multi-stage Docker + Docker Compose** |
 | **MLOps Capabilities** | In-memory only | **Versioned registry (`joblib` + `json`), live inference** |
@@ -53,7 +54,7 @@ Over the course of 10 structured engineering iterations (**Phases 0 through 9**)
 
 ---
 
-## 2. Chronological Project Evolution (Phases 0–9)
+## 2. Chronological Project Evolution (Phases 0–10 + Hardening)
 
 ### Phase 0 — Repository Bootstrap & Baseline Architecture
 - **Objective:** Establish version control, sanitize project structure, exclude virtual environments and cache directories, and publish to GitHub.
@@ -147,6 +148,25 @@ Over the course of 10 structured engineering iterations (**Phases 0 through 9**)
   - Fixed runtime `NameError: np` and `selected_k` session state fallback crashes in the live inference UI.
   - Enforced string data-type ingestion (`dtype=str`) on customer ID columns to preserve leading zeros (`"00123"` preserved rather than truncated to integer `123`).
 - **Git Commit:** `ee61905` (*fix: security & data integrity — mock S3 path traversal, S3 size limit, live classifier crash, ID normalization*)
+
+### Phase 10 — Analytical Correctness & Persona Logic
+- **Objective:** Eliminate distortions from relative min-max centroid scaling, introduce pre-scaling variance guards, implement rule-based persona classification, support return-aware cleaning policies, and make currency localization configurable.
+- **Deliverables:**
+  - Evaluated `log1p(data).std(axis=0)` *before* `StandardScaler` to prevent unit variance artifacts on low-variance inputs.
+  - Implemented explicit behavioral threshold classification (`classify_cluster()`) alongside composite ranking ($0.35 R_{\text{inv}} + 0.35 F + 0.30 M$) with `(Tier 2)` collision tags.
+  - Introduced `CleaningPolicy` dataclass allowing analysts to toggle between Gross Spend and Net Spend while tracking refund amounts and rates independently.
+  - Dynamic currency symbol selection (`USD`, `EUR`, `GBP`, `INR`, `JPY`, `CAD`, `AUD`) propagating across charts, KPIs, and export headers.
+- **Git Commit:** `c09907f` (*fix: analytical correctness — pre-scale variance guard, rule-based personas, net returns, configurable currency (Phase 10)*)
+
+### Hardening & Quality Audit — End-to-End Currency Propagation & Edge Case Fixes
+- **Objective:** Audit entire codebase for bugs, missing imports, unhandled exceptions, and incomplete tasks.
+- **Deliverables:**
+  - Added missing `Optional` import in `components/download_button.py` to prevent runtime `NameError`.
+  - Implemented `__getitem__` on `_SegmentColorsDict` in `src/personas.py` to resolve Plotly `KeyError` when accessing tiered persona labels via bracket notation (`SEGMENT_COLORS["Champions (Tier 2)"]`).
+  - Standardized `currency_symbol` parameter across `components/filters.py`, `components/data_preview.py`, `app.py`, `viz/rfm_charts.py`, `pages/2_RFM_Explorer.py`, `viz/cluster_scatter.py`, `pages/3_Cluster_Map.py`, `viz/customer_timeline.py`, `pages/4_Customer_Search.py`, and `pages/6_Model_Registry.py`.
+  - Added RFM observation window snapshot date banner in `pages/2_RFM_Explorer.py`.
+  - Expanded automated test suite from 65 to 68 passing tests.
+- **Git Commit:** `169a7cf` (*fix: resolve audit bugs — SEGMENT_COLORS bracket indexing, Optional typing, and end-to-end currency propagation (68 tests)*)
 
 ---
 
@@ -499,25 +519,22 @@ The repository history reflects structured, semantic commits aligned with projec
 | `04da005` | `docs: update implementation plan with review feedback and ignore review files` | Planning |
 | `ee61905` | `fix: security & data integrity — mock S3 path traversal, S3 size limit, live classifier crash, ID normalization (Phase 9)` | Phase 9 |
 | `30420ac` | `docs: mark Phase 9 as completed in implementation plan` | Documentation |
-| *pending* | `fix: analytical correctness — pre-scale variance guard, rule-based personas, net returns, configurable currency (Phase 10)` | Phase 10 |
+| `c09907f` | `fix: analytical correctness — pre-scale variance guard, rule-based personas, net returns, configurable currency (Phase 10)` | Phase 10 |
+| `169a7cf` | `fix: resolve audit bugs — SEGMENT_COLORS bracket indexing, Optional typing, and end-to-end currency propagation (68 tests)` | Hardening |
+| `cfbb5ac` | `docs: archive implementation plan into progress report and untrack implementation_plan.md` | Governance |
 
 ---
 
 ## 8. Upcoming Roadmap & Next Phases (Phases 11–12)
 
-The implementation plan outlines two upcoming phases to complete the project's journey to production-grade data engineering:
+The implementation roadmap outlines two upcoming phases to complete the project's journey to production-grade data engineering:
 
 ```mermaid
 graph TD
-    P10["Phase 10: Analytical Correctness (Completed)"] --> P11["Phase 11: Architectural Decoupling & Pipeline Robustness"]
+    P10["Phase 10: Analytical Correctness (Completed)"] --> HARDEN["Hardening Audit (Completed - 68 tests)"]
+    HARDEN --> P11["Phase 11: Architectural Decoupling & Pipeline Robustness"]
     P11 --> P12["Phase 12: Production Engineering & Validation"]
 ```
-
-### Phase 10: Analytical Correctness & Persona Logic (Completed)
-- **Pre-Scaling Variance Guard:** Evaluates `log1p(data).std(axis=0)` *before* applying `StandardScaler`, catching near-zero variance data before scaling forces noise to unit variance.
-- **Rule-Based Persona Classification:** Implemented explicit behavioral threshold rules (`classify_cluster()`) alongside composite ranking with immutable lookup helpers and `(Tier 2)` collision tags.
-- **Net vs. Gross Returns Policy:** Introduced `CleaningPolicy` dataclass allowing analysts to toggle between Gross Spend and Net Spend while tracking refund amounts and rates independently.
-- **Configurable Currency Localization:** Dynamic currency symbol selection (`USD`, `EUR`, `GBP`, `INR`, `JPY`, `CAD`, `AUD`) propagating seamlessly across charts, KPIs, and export headers.
 
 ### Phase 11: Architectural Decoupling & Pipeline Robustness
 - **Core Library Decoupling:** Remove all Streamlit UI imports (`streamlit`, `@st.cache_data`) from `src/`, migrating caching to an orchestration service layer to enable headless CLI and API execution.
@@ -530,5 +547,97 @@ graph TD
 
 ---
 
+## 9. Implementation Plan Archive & Historical Master Record
+
+> [!NOTE]
+> **Decommission Notice & Archival Record:**  
+> The internal working plan `implementation_plan.md` has been officially untracked and removed from the active Git repository (and placed under `.gitignore`) to keep the public repository focused on production engineering assets. This section permanently records the complete engineering plan, student context, phase roadmap, technical specifications, and execution protocol that governed the development of RFM Cluster360.
+
+### 9.1 Engineering Context & Target Profile
+- **Target Role:** Cloud / Data Engineering roles (Data Pipelines, MLOps, Cloud Infrastructure).
+- **Profile Context:** 3rd-year B.Tech CS (Data Science).
+- **Execution Methodology:** Test-driven development, modular component separation, semantic commits after every phase, zero regressions tolerance.
+- **Repository:** [`github.com/Khare69/RFM-Cluster360`](https://github.com/Khare69/RFM-Cluster360) (public).
+
+### 9.2 Master Phase-by-Phase Roadmap Matrix (Phases 0–12)
+
+| Phase | Title | Primary Goal | Deliverables | Tests | Status |
+|:---:|---|---|---|:---:|:---:|
+| **0** | **Repository Bootstrap** | Version control & baseline setup | Clean repo structure, strict `.gitignore`, Apache 2.0 license, comprehensive `README.md` | 0 | **Completed** |
+| **1** | **Critical Bug Fixes** | Eliminate runtime crashes | Sliders clamped to range delta, duplicate mapping guard, `StringIO` stream encoder, small-dataset $k$-guard | 4 | **Completed** |
+| **2** | **Data Integrity & Cleaning** | Prevent silent data corruption | Accounting parentheses regex, string-float ID normalization, null invoice filtering, `CleaningReport` | 7 | **Completed** |
+| **3** | **ML Pipeline Resilience** | Fix persona mislabeling | Weighted composite percentile ranking ($0.35 R_{\text{inv}} + 0.35 F + 0.30 M$), tier qualifiers for $k \ge 10$, low-variance pre-guard | 11 | **Completed** |
+| **4** | **Visualization & UI Fixes** | Heatmap & performance fixes | Contiguous month cohort reindexing, dynamic text contrast, zero-spend scatter floor, `@st.cache_data` | 16 | **Completed** |
+| **5** | **Cloud Storage Integration** | Cloud ingestion & Parquet | AWS S3 download/upload with `boto3`, offline local mock sandbox (`data/mock_s3/`), Apache Parquet via `pyarrow` | 28 | **Completed** |
+| **6** | **Docker Containerization** | Production packaging | Multi-stage `Dockerfile` (`python:3.11-slim`), unprivileged `appuser:1000`, `docker-compose.yml`, health checks | 34 | **Completed** |
+| **7** | **MLOps Model Registry** | Model artifact persistence | `src/model_registry.py` (`joblib` + JSON metadata), version history UI, model comparison, real-time single-customer classifier | 46 | **Completed** |
+| **8** | **GitHub Actions CI/CD** | Automated continuous testing | `.github/workflows/ci.yml` (Python 3.11, `ubuntu-latest`), decoupled `requirements.txt` vs `requirements-dev.txt`, CI badge | 51 | **Completed** |
+| **9** | **Security & Data Integrity** | Defensive vulnerability fixes | Path traversal containment with `is_relative_to()`, 50MB S3 size limits, missing `numpy` imports, leading-zero ID preservation | 59 | **Completed** |
+| **10** | **Analytical Correctness** | Rigorous behavioral logic | Pre-scaling variance evaluation, rule-based persona thresholds, return-aware `CleaningPolicy` (Gross vs Net), currency localization | 65 | **Completed** |
+| **Audit** | **Quality & Edge Case Hardening** | Zero-defect production audit | `_SegmentColorsDict` bracket indexing, `Optional` typing import, end-to-end currency propagation across all 6 pages/charts | 68 | **Completed** |
+| **11** | **Architectural Decoupling** | Headless core analytics | Remove Streamlit imports from `src/`, unified `sklearn.pipeline.Pipeline` artifact, explicit "Promote Model" button | — | *Roadmap* |
+| **12** | **Production Engineering** | Production gates & baselines | `ruff` linting, `pyright` type checks, Docker build in CI, quintile RFM baselines, snapshot date UI | — | *Roadmap* |
+
+### 9.3 Standard Phase Completion Protocol
+
+All engineering iterations across this repository adhere to a mandatory 5-step closing sequence:
+1. **Side-by-Side Documentation Sync:** Update `README.md` and progress documentation concurrently with code changes, keeping architecture diagrams, badges, and usage guides current.
+2. **Comprehensive Test Suite Execution:** Execute `pytest -v` across all suites, enforcing a 100% pass rate with zero regressions before staging.
+3. **Atomic File Staging:** Stage all affected files (`git add .`) including code, tests, configurations, and documentation.
+4. **Semantic Conventional Commits:** Commit with clear conventional prefixes (`feat:`, `fix:`, `docs:`, `ci:`, `refactor:`, `build:`) describing exact architectural impact.
+5. **Remote Synchronization:** Push directly to remote repository (`git push origin main`) to ensure remote visibility matches local state.
+
+### 9.4 Full Dependency Architecture & Separation
+
+The project enforces strict separation between production runtime requirements and development/testing tooling:
+
+#### Production Runtime Dependencies (`requirements.txt`)
+- `pandas>=2.0.0`: Core DataFrame manipulation and aggregation.
+- `numpy>=1.24.0`: Mathematical transformations (`log1p`, matrix operations).
+- `scikit-learn>=1.3.0`: K-Means clustering, silhouette scoring, feature scaling.
+- `plotly>=5.17.0`: Interactive 2D/3D visualizations and cohort heatmaps.
+- `streamlit>=1.28.0`: Reactive web application and multi-page dashboard.
+- `python-dotenv>=1.0.0`: Environment variable management and `.env` parsing.
+- `boto3>=1.28.0`: Amazon Web Services S3 cloud SDK.
+- `pyarrow>=14.0.0`: Apache Parquet columnar binary serialization with Snappy compression.
+- `joblib>=1.3.0`: Optimized model and pipeline serialization.
+
+#### Development & Testing Dependencies (`requirements-dev.txt`)
+- `pytest>=7.4.0`: Automated test execution, parameterization, and assertion runners.
+- `moto>=4.2.0`: In-memory AWS S3 cloud service mocking for credential-free testing.
+
+#### Host System Tooling
+- `git`: Distributed version control.
+- `gh`: GitHub Command Line Interface.
+- `Docker Desktop` / `Docker Engine`: Multi-stage image building and container orchestration.
+
+### 9.5 Detailed Specifications for Upcoming Phases (Phases 11–12)
+
+#### Phase 11 — Architectural Decoupling & Pipeline Robustness
+- **Task 11.1 — Remove Streamlit from Core Analytics (`src/`):**
+  - Refactor `src/rfm.py`, `src/clustering.py`, and `src/ingestion.py` to remove `import streamlit` and `@st.cache_data`.
+  - Introduce an application orchestration layer (e.g., `services/segmentation_service.py` or cache wrappers in `app.py`) so core logic can be executed headlessly from CLI scripts, Airflow DAGs, or FastAPI microservices.
+- **Task 11.2 — Unified scikit-learn Pipeline:**
+  - Refactor `src/model_registry.py` and `src/clustering.py` to bundle `FunctionTransformer(np.log1p)`, `StandardScaler()`, and `KMeans()` into a single `sklearn.pipeline.Pipeline` artifact.
+  - Eliminates separate scaler and model saving, preventing data leakage and preprocessing drift during inference.
+- **Task 11.3 — Explicit Model Promotion:**
+  - Replace automated post-pipeline model saving with an intentional "Promote Model to Registry" button in `pages/6_Model_Registry.py` with custom tags and notes.
+
+#### Phase 12 — Production Engineering & Validation
+- **Task 12.1 — Advanced CI Quality Gates:**
+  - Update `.github/workflows/ci.yml` to incorporate `ruff` (fast linting and code formatting) and `pyright` (static type validation).
+  - Add a container build step (`docker build -t rfm-cluster360:test .`) to CI to guarantee that the multi-stage Dockerfile builds cleanly on every PR.
+- **Task 12.2 — Analytical Baselines & Snapshot Date Governance:**
+  - Implement a traditional quintile RFM scoring baseline alongside K-Means clusters to quantify cluster separation against rule-based baselines.
+  - Display the dataset snapshot reference date prominently across all customer profile pages.
+
+#### Post-MVP Deferred Roadmap
+- Multi-period segment migration tracking (Sankey diagrams showing customer movement between clusters across quarterly observation windows).
+- Automated customer churn hazard scoring (Cox proportional hazards / survival analysis).
+- Product affinity basket analysis (Apriori association rules integrated with segment profiles).
+- Direct cloud warehouse integration (Google BigQuery / Snowflake / Databricks Delta Lake connectors).
+
+---
+
 > **Report Conclusion:**  
-> RFM Cluster360 has completed **Phases 0 through 10** with zero failing tests (65/65 passed), comprehensive cloud, MLOps, security, and analytical correctness capabilities. The codebase is fully verified, containerized, documented, and synchronized with GitHub.
+> RFM Cluster360 has completed **Phases 0 through 10 plus the Quality Hardening Audit** with zero failing tests (68/68 passed), comprehensive cloud, MLOps, security, and analytical correctness capabilities. The master implementation record is fully archived, and the codebase is completely verified, containerized, documented, and synchronized with GitHub.
