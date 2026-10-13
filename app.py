@@ -19,14 +19,20 @@ from config.settings import (
 )
 from components.data_preview import render_cleaning_report_card, render_column_mapping_ui
 from components.download_button import render_export_section
+from services.segmentation_service import (
+    cached_calculate_rfm,
+    cached_evaluate_clusters,
+    cached_load_csv,
+    cached_preprocess_rfm,
+    promote_model_to_registry,
+)
 from src.cleaning import CleaningPolicy, clean_transactions
 from src.cloud_storage import is_mock_mode, load_from_s3
-from src.clustering import build_clustered_df, evaluate_clusters, preprocess_rfm, run_kmeans
+from src.clustering import build_clustered_df, run_kmeans
 from src.cohort import build_cohort_matrix
-from src.ingestion import auto_map_columns, load_csv, validate_mapping
-from src.model_registry import save_model_artifact
+from src.ingestion import auto_map_columns, validate_mapping
 from src.personas import label_segments
-from src.rfm import calculate_rfm, default_snapshot_date
+from src.rfm import default_snapshot_date
 
 # Configure Streamlit page layout and appearance
 st.set_page_config(
@@ -102,11 +108,11 @@ def run_pipeline(
 
     with st.spinner("2/5 Computing Recency, Frequency, and Monetary metrics..."):
         snap_dt = custom_snapshot_date if custom_snapshot_date else default_snapshot_date(clean_df)
-        rfm_df = calculate_rfm(clean_df, snapshot_date=snap_dt)
+        rfm_df = cached_calculate_rfm(clean_df, snapshot_date=snap_dt)
 
     with st.spinner("3/5 Normalizing distributions and evaluating optimal cluster count..."):
-        scaled_data, scaler, feature_cols = preprocess_rfm(rfm_df)
-        eval_metrics = evaluate_clusters(scaled_data)
+        scaled_data, scaler, feature_cols = cached_preprocess_rfm(rfm_df)
+        eval_metrics = cached_evaluate_clusters(scaled_data)
         best_k = eval_metrics["best_k"]
         chosen_k = k_override if k_override is not None else best_k
 
@@ -118,20 +124,9 @@ def run_pipeline(
     with st.spinner("5/5 Generating monthly cohort retention matrix..."):
         retention_matrix, counts_matrix = build_cohort_matrix(clean_df)
 
-    # Auto-save model artifact into MLOps registry
-    try:
-        saved_ver = save_model_artifact(
-            model=kmeans_model,
-            scaler=scaler,
-            cluster_map=cluster_map,
-            eval_metrics=eval_metrics,
-            feature_names=feature_cols,
-            customer_count=len(rfm_df),
-            notes=f"Auto-saved pipeline run (k={chosen_k})",
-        )
-        st.session_state.model_version = saved_ver
-    except Exception:
-        st.session_state.model_version = None
+    # In-memory session tracking (explicit user promotion required to persist to registry)
+    st.session_state.model_version = None
+    st.session_state.feature_cols = feature_cols
 
     # Persist in session state
     st.session_state.raw_df = raw_df
@@ -249,7 +244,7 @@ def main():
             )
             if uploaded_file is not None:
                 with st.spinner("Reading file..."):
-                    df_parsed, err = load_csv(uploaded_file, max_size_mb=MAX_FILE_SIZE_MB)
+                    df_parsed, err = cached_load_csv(uploaded_file, max_size_mb=MAX_FILE_SIZE_MB)
                     if err:
                         st.error(f"❌ {err}")
                     else:
@@ -267,7 +262,7 @@ def main():
             if st.button("🚀 Load Sample Retail Dataset", type="primary"):
                 sample_path = os.path.join(os.path.dirname(__file__), "data", "sample_retail.csv")
                 if os.path.exists(sample_path):
-                    df_parsed, err = load_csv(sample_path)
+                    df_parsed, err = cached_load_csv(sample_path)
                     if not err:
                         raw_df = df_parsed
                         file_name = "sample_retail.csv"
@@ -442,7 +437,40 @@ def main():
             st.info("🤖 **6. Model Registry**\n\nMLOps artifact registry to inspect, version, reload, and run inference.")
 
         if st.session_state.model_version:
-            st.caption(f"💾 **Active Model Artifact:** `{os.path.basename(st.session_state.model_version)}`")
+            st.caption(f"💾 **Active Model Artifact in Registry:** `{os.path.basename(st.session_state.model_version)}`")
+
+        # Explicit Model Promotion / Registry Save UI
+        st.markdown("---")
+        st.subheader("🚀 Model Lifecycle & Promotion")
+        if st.session_state.model_version:
+            st.success(f"✅ **Model Persisted in Registry:** `{os.path.basename(st.session_state.model_version)}`")
+        else:
+            st.info("ℹ️ **Exploratory Run:** This pipeline run is in session memory only and has not been written to the registry.")
+            with st.expander("💾 Promote Current Model to MLOps Registry", expanded=True):
+                p_col1, p_col2 = st.columns([3, 1])
+                with p_col1:
+                    promo_notes = st.text_input(
+                        "Promotion Notes / Description",
+                        value=f"Model k={st.session_state.selected_k} trained on {len(st.session_state.rfm_df)} customers",
+                        key="home_promo_notes_input",
+                    )
+                with p_col2:
+                    st.write("")
+                    st.write("")
+                    if st.button("Promote Model", type="primary", use_container_width=True):
+                        with st.spinner("Registering unified pipeline artifact..."):
+                            saved_dir = promote_model_to_registry(
+                                model=st.session_state.fitted_model,
+                                scaler=st.session_state.fitted_scaler,
+                                cluster_map=st.session_state.cluster_map,
+                                eval_metrics=st.session_state.clustering_metrics,
+                                feature_names=st.session_state.get("feature_cols", ["recency", "frequency", "monetary"]),
+                                customer_count=len(st.session_state.rfm_df),
+                                notes=promo_notes.strip() or f"Promoted pipeline model (k={st.session_state.selected_k})",
+                            )
+                            st.session_state.model_version = saved_dir
+                            st.success(f"✅ Model successfully registered: `{os.path.basename(saved_dir)}`")
+                            st.rerun()
 
         st.markdown("---")
         st.subheader("📋 Segmented Customers Preview")

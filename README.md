@@ -9,7 +9,7 @@
 [![Apache Parquet](https://img.shields.io/badge/Format-Apache%20Parquet-teal.svg)](https://parquet.apache.org/)
 [![Docker](https://img.shields.io/badge/Docker-Containerized-2496ED.svg?logo=docker&logoColor=white)](Dockerfile)
 [![MLOps](https://img.shields.io/badge/MLOps-Model%20Registry-blueviolet.svg)](#-mlops-model-artifact-registry)
-[![Tests](https://img.shields.io/badge/Tests-68%20Passed-brightgreen.svg)](#-running-the-test-suite)
+[![Tests](https://img.shields.io/badge/Tests-75%20Passed-brightgreen.svg)](#-running-the-test-suite)
 [![Report](https://img.shields.io/badge/Report-Project%20Progress%20%26%20Bugs-informational.svg)](PROJECT_PROGRESS_REPORT.md)
 [![License](https://img.shields.io/badge/License-Apache_2.0-green.svg)](LICENSE)
 
@@ -97,7 +97,13 @@ An enterprise-ready customer intelligence and segmentation platform that transfo
 13. **Continuous Integration & Automated Testing Pipeline (GitHub Actions)**
     - **Automated CI Workflow:** Executes on every `push` and `pull_request` targeting `main`.
     - **Dependency Decoupling:** Production runtime requirements (`requirements.txt`) are separated from development/test packages (`requirements-dev.txt`), keeping production container images lean and CI runs fast.
-    - **Full Test Automation:** Runs all 50 unit and integration tests across data ingestion, cleaning, RFM logic, clustering, cohort analysis, Docker configuration, MLOps registry, and CI configuration.
+    - **Full Test Automation:** Runs all 75 unit and integration tests across data ingestion, cleaning, RFM logic, clustering, cohort analysis, Docker configuration, MLOps registry, decoupling, and CI configuration.
+
+14. **Architectural Decoupling & Unified Pipeline Artifacts**
+    - **Headless Core Analytics:** Core modules under `src/` contain zero UI or Streamlit dependencies, enabling headless execution from CLI scripts, Airflow workflows, or backend microservices.
+    - **UI Orchestration Layer (`services/`):** Streamlit caching (`@st.cache_data`) and presentation orchestration are cleanly encapsulated in `services/segmentation_service.py`.
+    - **Unified Scikit-Learn Pipeline (`pipeline.joblib`):** Bundles `FunctionTransformer(np.log1p)`, `StandardScaler()`, and `KMeans()` into a single serialized pipeline artifact, eliminating preprocessing drift during inference.
+    - **Explicit Model Promotion:** Exploratory pipeline runs remain in ephemeral session memory; users explicitly promote models to the registry with custom notes and tags via "Promote Model to Registry".
 
 
 ---
@@ -506,7 +512,7 @@ pytest tests/ -v
 platform win32 -- Python 3.14.7, pytest-9.1.1, pluggy-1.6.0
 configfile: pytest.ini
 testpaths: tests
-collected 65 items
+collected 75 items
 
 tests/test_ci_config.py::test_ci_workflow_structure PASSED               [  1%]
 tests/test_ci_config.py::test_requirements_split PASSED                  [  3%]
@@ -577,7 +583,7 @@ tests/test_rfm.py::test_rfm_histograms_custom_currency PASSED            [ 97%]
 tests/test_rfm.py::test_cluster_scatter_custom_currency PASSED           [ 98%]
 tests/test_rfm.py::test_customer_timeline_and_benchmark_custom_currency PASSED [100%]
 
-============================= 68 passed in 15.20s =============================
+============================= 75 passed in 15.50s =============================
 ```
 
 ---

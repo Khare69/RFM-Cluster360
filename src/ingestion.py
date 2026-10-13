@@ -7,7 +7,6 @@ import difflib
 import re
 from typing import Dict, List, Optional, Tuple, Union
 import pandas as pd
-import streamlit as st
 
 from config.settings import (
     COLUMN_ALIASES,
@@ -53,7 +52,6 @@ def _get_id_dtypes(
     return dtype_map if dtype_map else None
 
 
-@st.cache_data(show_spinner=False)
 def load_csv(
     file_source: Union[str, bytes, io.BytesIO, io.StringIO, object],
     max_size_mb: int = MAX_FILE_SIZE_MB,

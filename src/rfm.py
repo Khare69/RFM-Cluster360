@@ -7,7 +7,6 @@ from datetime import date, datetime
 from typing import Optional, Union, Dict, Any
 import numpy as np
 import pandas as pd
-import streamlit as st
 
 
 def default_snapshot_date(df: pd.DataFrame) -> pd.Timestamp:
@@ -35,7 +34,6 @@ def default_snapshot_date(df: pd.DataFrame) -> pd.Timestamp:
     return pd.Timestamp(max_date.date()) + pd.Timedelta(days=1)
 
 
-@st.cache_data(show_spinner=False)
 def calculate_rfm(
     df: pd.DataFrame,
     snapshot_date: Optional[Union[str, date, datetime, pd.Timestamp]] = None,

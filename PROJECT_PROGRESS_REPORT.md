@@ -3,7 +3,7 @@
 > **Project:** RFM Cluster360 — Enterprise Customer Segmentation & MLOps Platform  
 > **Repository:** [`github.com/Khare69/RFM-Cluster360`](https://github.com/Khare69/RFM-Cluster360)  
 > **Report Timestamp:** October 2026  
-> **Current Status:** Phases 0 through 10 Completed + Hardening Audit (100% Pass Rate across 68 Automated Tests)
+> **Current Status:** Phases 0 through 11 Completed (100% Pass Rate across 75 Automated Tests)
 
 ---
 
@@ -41,11 +41,11 @@ Over the course of 10 structured engineering iterations (**Phases 0 through 9**)
 
 ### Platform Health Metrics at a Glance
 
-| Metric | Day 1 (Phase 0) | Current State (Phase 10 + Hardening) |
+| Metric | Day 1 (Phase 0) | Current State (Phase 11 Completed) |
 |---|:---:|:---:|
-| **Automated Unit & Integration Tests** | 0 tests | **68 tests (100% pass rate in ~14s)** |
-| **Test Suites** | 0 files | **10 test suites** (`tests/test_*.py`) |
-| **Git Commits** | 1 initial commit | **22 semantic commits** |
+| **Automated Unit & Integration Tests** | 0 tests | **75 tests (100% pass rate in ~15s)** |
+| **Test Suites** | 0 files | **11 test suites** (`tests/test_*.py`) |
+| **Git Commits** | 1 initial commit | **23 semantic commits** |
 | **Supported Storage Backends** | Local CSV only | **Local CSV, Apache Parquet, AWS S3, Mock S3** |
 | **Containerization** | None | **Production Multi-stage Docker + Docker Compose** |
 | **MLOps Capabilities** | In-memory only | **Versioned registry (`joblib` + `json`), live inference** |
@@ -167,6 +167,17 @@ Over the course of 10 structured engineering iterations (**Phases 0 through 9**)
   - Added RFM observation window snapshot date banner in `pages/2_RFM_Explorer.py`.
   - Expanded automated test suite from 65 to 68 passing tests.
 - **Git Commit:** `169a7cf` (*fix: resolve audit bugs — SEGMENT_COLORS bracket indexing, Optional typing, and end-to-end currency propagation (68 tests)*)
+
+### Phase 11 — Architectural Decoupling & Unified Pipeline Artifacts
+- **Objective:** Separate pure analytical logic from the Streamlit UI presentation layer, bundle end-to-end preprocessing into unified Scikit-Learn Pipeline artifacts, and replace automatic registry dumping with intentional model promotion.
+- **Deliverables:**
+  - Removed all Streamlit imports (`import streamlit as st`) and decorators (`@st.cache_data`) from `src/rfm.py`, `src/clustering.py`, and `src/ingestion.py`, making `src/` 100% headless and executable in non-UI environments.
+  - Created `services/segmentation_service.py` to encapsulate Streamlit caching wrappers (`cached_load_csv`, `cached_calculate_rfm`, `cached_preprocess_rfm`, `cached_evaluate_clusters`) and promotion orchestration.
+  - Built unified Scikit-Learn Pipeline functionality (`create_rfm_pipeline`, `fit_rfm_pipeline`) bundling `FunctionTransformer(np.log1p)`, `StandardScaler()`, and `KMeans()` into `pipeline.joblib`, completely eliminating preprocessing drift during live inference.
+  - Added legacy fallback support in `load_pipeline_artifact()` to reconstruct unified pipelines from older standalone model/scaler artifacts.
+  - Replaced automated post-pipeline model saving with deliberate "Promote Model to Registry" workflow on Home page and Model Registry.
+  - Created comprehensive test suite `tests/test_decoupling_and_pipeline.py`, expanding automated coverage to 75 tests (100% pass rate).
+- **Git Commit:** Pending (*refactor: architectural decoupling — remove Streamlit from core, unified sklearn pipeline, explicit model persistence*)
 
 ---
 
@@ -575,7 +586,7 @@ graph TD
 | **9** | **Security & Data Integrity** | Defensive vulnerability fixes | Path traversal containment with `is_relative_to()`, 50MB S3 size limits, missing `numpy` imports, leading-zero ID preservation | 59 | **Completed** |
 | **10** | **Analytical Correctness** | Rigorous behavioral logic | Pre-scaling variance evaluation, rule-based persona thresholds, return-aware `CleaningPolicy` (Gross vs Net), currency localization | 65 | **Completed** |
 | **Audit** | **Quality & Edge Case Hardening** | Zero-defect production audit | `_SegmentColorsDict` bracket indexing, `Optional` typing import, end-to-end currency propagation across all 6 pages/charts | 68 | **Completed** |
-| **11** | **Architectural Decoupling** | Headless core analytics | Remove Streamlit imports from `src/`, unified `sklearn.pipeline.Pipeline` artifact, explicit "Promote Model" button | — | *Roadmap* |
+| **11** | **Architectural Decoupling** | Headless core analytics | Remove Streamlit imports from `src/`, unified `sklearn.pipeline.Pipeline` artifact, explicit "Promote Model" button | 75 | **Completed** |
 | **12** | **Production Engineering** | Production gates & baselines | `ruff` linting, `pyright` type checks, Docker build in CI, quintile RFM baselines, snapshot date UI | — | *Roadmap* |
 
 ### 9.3 Standard Phase Completion Protocol
@@ -640,4 +651,4 @@ The project enforces strict separation between production runtime requirements a
 ---
 
 > **Report Conclusion:**  
-> RFM Cluster360 has completed **Phases 0 through 10 plus the Quality Hardening Audit** with zero failing tests (68/68 passed), comprehensive cloud, MLOps, security, and analytical correctness capabilities. The master implementation record is fully archived, and the codebase is completely verified, containerized, documented, and synchronized with GitHub.
+> RFM Cluster360 has completed **Phases 0 through 11** with zero failing tests (75/75 passed), comprehensive cloud, MLOps, security, analytical correctness, headless architecture decoupling, and unified pipeline capabilities. The master implementation record is fully archived, and the codebase is completely verified, containerized, documented, and synchronized with GitHub.

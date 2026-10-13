@@ -6,15 +6,14 @@ Implements log-transformations, standardization, automatic k-selection via silho
 from typing import Any, Dict, List, Optional, Tuple, Union
 import numpy as np
 import pandas as pd
-import streamlit as st
 from sklearn.cluster import KMeans
 from sklearn.metrics import silhouette_score
-from sklearn.preprocessing import StandardScaler
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import FunctionTransformer, StandardScaler
 
 from config.settings import DEFAULT_K_MAX, DEFAULT_K_MIN, MIN_CUSTOMERS_FOR_CLUSTERING, RANDOM_STATE
 
 
-@st.cache_data(show_spinner=False)
 def preprocess_rfm(
     rfm_df: pd.DataFrame,
     features: Optional[List[str]] = None,
@@ -69,7 +68,6 @@ def preprocess_rfm(
     return scaled_data, scaler, cols
 
 
-@st.cache_data(show_spinner=False)
 def evaluate_clusters(
     scaled_data: np.ndarray,
     k_range: Optional[range] = None,
@@ -248,3 +246,85 @@ def get_cluster_profiles(clustered_df: pd.DataFrame) -> pd.DataFrame:
         profiles[col] = profiles[col].round(2)
 
     return profiles
+
+
+def create_rfm_pipeline(
+    k: int,
+    random_state: int = RANDOM_STATE,
+    scaler: Optional[StandardScaler] = None,
+    kmeans_model: Optional[KMeans] = None,
+) -> Pipeline:
+    """
+    Constructs a unified Scikit-Learn Pipeline combining log1p transformation,
+    StandardScaler normalization, and KMeans clustering.
+
+    Parameters
+    ----------
+    k : int
+        Number of clusters.
+    random_state : int, default RANDOM_STATE
+        Random state for reproducibility.
+    scaler : StandardScaler, optional
+        Pre-configured or pre-fitted StandardScaler. Defaults to a fresh StandardScaler().
+    kmeans_model : KMeans, optional
+        Pre-configured or pre-fitted KMeans estimator. Defaults to KMeans(n_clusters=k).
+
+    Returns
+    -------
+    Pipeline
+        Unified Scikit-Learn Pipeline ready for fitting or inference.
+    """
+    scaler_step = scaler if scaler is not None else StandardScaler()
+    kmeans_step = (
+        kmeans_model
+        if kmeans_model is not None
+        else KMeans(n_clusters=k, random_state=random_state, n_init=10)
+    )
+    return Pipeline([
+        ("log1p", FunctionTransformer(np.log1p, validate=False)),
+        ("scaler", scaler_step),
+        ("kmeans", kmeans_step),
+    ])
+
+
+def fit_rfm_pipeline(
+    rfm_df: pd.DataFrame,
+    k: int,
+    features: Optional[List[str]] = None,
+    random_state: int = RANDOM_STATE,
+) -> Tuple[Pipeline, np.ndarray]:
+    """
+    Fits a unified Scikit-Learn Pipeline on raw RFM metrics and returns the fitted pipeline and cluster labels.
+
+    Parameters
+    ----------
+    rfm_df : pd.DataFrame
+        DataFrame containing RFM metrics.
+    k : int
+        Number of clusters to create.
+    features : List[str], optional
+        Feature column names. Defaults to ['recency', 'frequency', 'monetary'].
+    random_state : int, default RANDOM_STATE
+        Random state for reproducibility.
+
+    Returns
+    -------
+    Tuple[Pipeline, np.ndarray]
+        (fitted_pipeline, cluster_labels)
+    """
+    cols = features if features is not None else ["recency", "frequency", "monetary"]
+    for col in cols:
+        if col not in rfm_df.columns:
+            raise ValueError(f"Feature '{col}' not found in RFM DataFrame.")
+
+    if len(rfm_df) < MIN_CUSTOMERS_FOR_CLUSTERING:
+        raise ValueError(
+            f"Dataset has only {len(rfm_df)} customers. "
+            f"A minimum of {MIN_CUSTOMERS_FOR_CLUSTERING} customers is required for meaningful clustering."
+        )
+
+    data = rfm_df[cols].clip(lower=0.0).values
+    pipeline = create_rfm_pipeline(k=k, random_state=random_state)
+    labels = pipeline.fit_predict(data)
+    return pipeline, labels
+
