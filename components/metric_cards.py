@@ -113,7 +113,7 @@ def render_persona_cards_grid(
             with st.container(border=True):
                 color_dot = f"<span style='display:inline-block;width:12px;height:12px;border-radius:50%;background-color:{persona_info['color']};margin-right:8px;'></span>"
                 st.markdown(f"### {color_dot}{seg_name}", unsafe_allow_html=True)
-                
+
                 # Metrics bar
                 m1, m2, m3 = st.columns(3)
                 m1.caption(f"**Customers:** {c_count:,} ({c_pct:.1f}%)")

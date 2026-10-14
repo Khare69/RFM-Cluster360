@@ -47,7 +47,7 @@ def generate_sample_data(filename="data/sample_retail.csv"):
     # 4. At Risk / Lost (35 customers): acquired Jan-Apr, stopped buying by Jun-Jul
     # 5. Occasional / Promising (25 customers): acquired scattered, 2-4 orders
     customers = []
-    
+
     # 1. Champions: 1001-1015
     for cid in range(1001, 1016):
         country = random.choices(countries, weights=country_weights)[0]
@@ -128,7 +128,7 @@ def generate_sample_data(filename="data/sample_retail.csv"):
 
         # Generate timestamps for orders
         first_date = datetime(base_year, first_m, random.randint(1, 25), random.randint(9, 17), random.randint(0, 59))
-        
+
         if c_type == "lost_or_at_risk":
             last_m = cust["last_active_month"]
             if last_m <= first_m:

@@ -2,7 +2,7 @@
 Sidebar filtering component across all dashboard views.
 """
 
-from typing import Optional, Tuple
+from typing import Optional
 import pandas as pd
 import streamlit as st
 
@@ -58,7 +58,7 @@ def render_sidebar_filters(
     curr_sym = currency_symbol or st.session_state.get("currency_symbol", "$")
     min_spend = float(labeled_df["monetary"].min())
     max_spend = float(labeled_df["monetary"].max())
-    
+
     if min_spend < max_spend:
         diff = max_spend - min_spend
         step_val = min(max(0.01, round(diff / 100, 2)), diff)

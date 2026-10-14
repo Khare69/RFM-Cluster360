@@ -24,7 +24,10 @@ def test_ci_workflow_structure():
     assert "3.11" in content, "Workflow must configure Python 3.11"
     assert "requirements.txt" in content, "Workflow must install production requirements"
     assert "requirements-dev.txt" in content, "Workflow must install development requirements"
+    assert "ruff check" in content, "Workflow must execute ruff linter"
+    assert "pyright" in content, "Workflow must execute pyright static type checker"
     assert "pytest" in content, "Workflow must execute pytest suite"
+    assert "docker build" in content, "Workflow must verify Docker build"
 
 
 def test_requirements_split():
@@ -38,13 +41,10 @@ def test_requirements_split():
     prod_content = prod_req_path.read_text(encoding="utf-8")
     dev_content = dev_req_path.read_text(encoding="utf-8")
 
-    # Test dependencies must NOT be in production requirements
-    assert "pytest" not in prod_content, "pytest must not be listed in production requirements.txt"
-    assert "moto" not in prod_content, "moto must not be listed in production requirements.txt"
-
-    # Test dependencies MUST be in requirements-dev.txt
-    assert "pytest" in dev_content, "pytest must be listed in requirements-dev.txt"
-    assert "moto" in dev_content, "moto must be listed in requirements-dev.txt"
+    # Test & dev quality dependencies must NOT be in production requirements
+    for dev_tool in ["pytest", "moto", "ruff", "pyright"]:
+        assert dev_tool not in prod_content, f"{dev_tool} must not be listed in production requirements.txt"
+        assert dev_tool in dev_content, f"{dev_tool} must be listed in requirements-dev.txt"
 
     # Core production packages must be present in requirements.txt
     core_packages = ["pandas", "numpy", "scikit-learn", "plotly", "streamlit", "boto3", "pyarrow", "joblib"]

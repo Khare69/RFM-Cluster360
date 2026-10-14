@@ -3,7 +3,6 @@ Unit tests for persona labeling and cluster-to-segment classification mapping.
 """
 
 import pandas as pd
-import pytest
 
 from src.clustering import build_clustered_df, preprocess_rfm, run_kmeans
 from src.personas import (

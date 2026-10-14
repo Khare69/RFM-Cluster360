@@ -3,7 +3,7 @@ Persona labeling module.
 Translates mathematical cluster centroids into actionable, human-readable customer personas and business strategies.
 """
 
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Tuple
 import numpy as np
 import pandas as pd
 

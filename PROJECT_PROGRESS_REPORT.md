@@ -3,14 +3,14 @@
 > **Project:** RFM Cluster360 — Enterprise Customer Segmentation & MLOps Platform  
 > **Repository:** [`github.com/Khare69/RFM-Cluster360`](https://github.com/Khare69/RFM-Cluster360)  
 > **Report Timestamp:** October 2026  
-> **Current Status:** Phases 0 through 11 Completed (100% Pass Rate across 75 Automated Tests)
+> **Current Status:** Phases 0 through 12 Completed (100% Pass Rate across 84 Automated Tests, Ruff & Pyright Quality Gates)
 
 ---
 
 ## Table of Contents
 
 1. [Executive Summary & High-Level Milestones](#1-executive-summary--high-level-milestones)
-2. [Chronological Project Evolution (Phases 0–10 + Hardening)](#2-chronological-project-evolution-phases-010--hardening)
+2. [Chronological Project Evolution (Phases 0–12 + Hardening)](#2-chronological-project-evolution-phases-012--hardening)
 3. [Comprehensive Bug, Error & Vulnerability Catalog](#3-comprehensive-bug-error--vulnerability-catalog)
    - [3.1 Critical Runtime Crashes & Unhandled Exceptions](#31-critical-runtime-crashes--unhandled-exceptions)
    - [3.2 Silent Data Corruption & Ingestion Flaws](#32-silent-data-corruption--ingestion-flaws)
@@ -30,26 +30,27 @@
 
 **RFM Cluster360** began as a standalone prototype script for calculating Recency, Frequency, and Monetary (RFM) metrics from e-commerce transaction logs and rendering basic K-Means clusters in a Streamlit dashboard. 
 
-Over the course of 10 structured engineering iterations (**Phases 0 through 9**), the system was transformed into a **hardened, enterprise-ready, containerized MLOps analytics platform** equipped with:
+Over the course of 12 structured engineering iterations (**Phases 0 through 12**), the system was transformed into a **hardened, enterprise-ready, containerized MLOps analytics platform** equipped with:
 - **Resilient Data Cleaning & Ingestion:** Multi-pass transaction sanitization supporting raw CSV, `StringIO`, AWS S3 cloud buckets, and offline local mock sandboxes, handling complex accounting negative conventions, string-float normalization, and leading-zero preservation.
-- **Robust Machine Learning:** Automated multi-k K-Means clustering ($k \in [2, 8]$) with silhouette evaluation, pre-clustering variance guards, and weighted composite percentile ranking ($0.35 R_{\text{inv}} + 0.35 F + 0.30 M$) to eliminate persona label inversion and collision.
+- **Robust Machine Learning & Quintile Baselines:** Automated multi-k K-Means clustering ($k \in [2, 8]$) with silhouette evaluation, pre-clustering variance guards, weighted composite percentile ranking, and traditional 1–5 quintile heuristic scoring baselines.
 - **Enterprise Cloud Storage & High-Performance Formats:** Full read/write AWS S3 integration via `boto3`, Apache Parquet binary serialization with Snappy compression via `pyarrow`, and offline mock sandboxing.
 - **Production Containerization:** Multi-stage `Dockerfile` based on `python:3.11-slim`, non-root user execution (`appuser:1000`), Docker Compose orchestration, and automated Streamlit health checks.
-- **MLOps Model Artifact Registry:** Model versioning with metadata tracking, side-by-side metric comparison, live inference customer classification, and automated artifact persistence.
-- **Automated CI/CD Pipeline:** GitHub Actions workflow executing the full test suite on every push and pull request, with decoupled production (`requirements.txt`) and development (`requirements-dev.txt`) dependencies.
+- **MLOps Model Artifact Registry & Unified Pipelines:** Serialized Scikit-Learn Pipelines (`pipeline.joblib`) bundling log1p transformation, scaling, and clustering, explicit model promotion, version comparison, and live inference.
+- **Automated CI/CD Quality Gates:** GitHub Actions workflow executing Ruff linting, Pyright static type checking, full 84-test Pytest suite, and Docker container build verification on every push and pull request.
 - **Defensive Security & Integrity Hardening:** Complete protection against directory traversal attacks via path canonicalization containment, remote payload memory throttling (50MB limits), and strict data-type enforcement.
 
 ### Platform Health Metrics at a Glance
 
-| Metric | Day 1 (Phase 0) | Current State (Phase 11 Completed) |
+| Metric | Day 1 (Phase 0) | Current State (Phases 11 & 12 Completed) |
 |---|:---:|:---:|
-| **Automated Unit & Integration Tests** | 0 tests | **75 tests (100% pass rate in ~15s)** |
-| **Test Suites** | 0 files | **11 test suites** (`tests/test_*.py`) |
-| **Git Commits** | 1 initial commit | **23 semantic commits** |
+| **Automated Unit & Integration Tests** | 0 tests | **84 tests (100% pass rate in ~25s)** |
+| **Test Suites** | 0 files | **12 test suites** (`tests/test_*.py`) |
+| **Git Commits** | 1 initial commit | **24 semantic commits** |
+| **Code Quality & Linting** | Unchecked | **Ruff (100% pass, 0 errors), Pyright (0 errors)** |
 | **Supported Storage Backends** | Local CSV only | **Local CSV, Apache Parquet, AWS S3, Mock S3** |
-| **Containerization** | None | **Production Multi-stage Docker + Docker Compose** |
-| **MLOps Capabilities** | In-memory only | **Versioned registry (`joblib` + `json`), live inference** |
-| **Continuous Integration** | None | **GitHub Actions (`ubuntu-latest`, Python 3.11)** |
+| **Containerization** | None | **Production Multi-stage Docker + Docker Compose + CI Build** |
+| **MLOps Capabilities** | In-memory only | **Unified Pipeline (`pipeline.joblib`), versioned registry, live inference** |
+| **Continuous Integration** | None | **GitHub Actions (Ruff + Pyright + Pytest + Docker Build)** |
 | **Known Security / Traversal Vulnerabilities** | Unaudited | **0 (Strictly mitigated & tested)** |
 
 ---
@@ -177,7 +178,19 @@ Over the course of 10 structured engineering iterations (**Phases 0 through 9**)
   - Added legacy fallback support in `load_pipeline_artifact()` to reconstruct unified pipelines from older standalone model/scaler artifacts.
   - Replaced automated post-pipeline model saving with deliberate "Promote Model to Registry" workflow on Home page and Model Registry.
   - Created comprehensive test suite `tests/test_decoupling_and_pipeline.py`, expanding automated coverage to 75 tests (100% pass rate).
-- **Git Commit:** Pending (*refactor: architectural decoupling — remove Streamlit from core, unified sklearn pipeline, explicit model persistence*)
+- **Git Commit:** `211787f` (*refactor: architectural decoupling — remove Streamlit from core, unified sklearn pipeline, explicit model persistence (Phase 11)*)
+
+### Phase 12 — Production Engineering, CI Quality Gates & Baseline Validation
+- **Objective:** Harden continuous integration quality gates (Ruff linting, Pyright static type checking, container build validation), introduce traditional quintile RFM analytical baselines, prominently display observation snapshot dates, and implement full-page AppTest UI smoke tests.
+- **Deliverables:**
+  - Configured `ruff` fast linting and formatting via [`ruff.toml`](ruff.toml) and integrated `pyright` static type validation via [`pyrightconfig.json`](pyrightconfig.json), achieving 0 lint errors and 0 type errors across all core modules.
+  - Hardened continuous integration in [`.github/workflows/ci.yml`](.github/workflows/ci.yml) with 4 sequential automated quality gates: Ruff linting (`ruff check .`), Pyright static type checking (`pyright`), Pytest test suite (`pytest -v --tb=short`), and Docker container build verification (`docker build -t rfm-cluster360:test .`).
+  - Decoupled `ruff` and `pyright` into [`requirements-dev.txt`](requirements-dev.txt), with automated architecture regression tests in [`tests/test_ci_config.py`](tests/test_ci_config.py).
+  - Implemented traditional 1–5 quintile RFM scoring (`compute_rfm_quintiles()`) in [`src/rfm.py`](src/rfm.py) with tie-safe quantile ranking, 3-digit concatenated scores (e.g., `'555'`), and total scores (3–15), providing an interpretable heuristic baseline alongside K-Means clusters.
+  - Integrated quintile baseline metrics and top score combination tables into [`pages/2_RFM_Explorer.py`](pages/2_RFM_Explorer.py), and surfaced quintile score cards and observation snapshot dates on individual accounts in [`pages/4_Customer_Search.py`](pages/4_Customer_Search.py).
+  - Built comprehensive headless Streamlit UI smoke suite [`tests/test_pages_smoke.py`](tests/test_pages_smoke.py) using `streamlit.testing.v1.AppTest`, verifying zero runtime exceptions across all pages in both uninitialized and populated states.
+  - Expanded automated test coverage from 75 to 84 tests (100% pass rate in ~25s).
+- **Git Commit:** `3129b64` (*ci: production engineering — ruff, pyright, docker build in CI, quintile baselines, smoke suite (Phase 12)*)
 
 ---
 
@@ -468,39 +481,43 @@ Throughout the project, several significant architectural pivots were made based
 
 ## 6. Automated Test Suite & Quality Assurance Growth
 
-The test suite expanded systematically across every phase, growing from **0 tests** at project bootstrap to **68 passing tests**:
+The test suite expanded systematically across every phase, growing from **0 tests** at project bootstrap to **84 passing tests**:
 
 ```
 Growth Timeline:
-Phase 0:  0 tests (MVP Bootstrap)
-Phase 1:  4 tests (Runtime crash regression suite)
-Phase 2:  7 tests (Data integrity & cleaning suite)
-Phase 3: 11 tests (ML clustering & persona suite)
-Phase 4: 16 tests (Cohort heatmap & RFM engine suite)
-Phase 5: 28 tests (Cloud storage, S3 mocking & Parquet suite)
-Phase 6: 34 tests (Docker configuration & container validation suite)
-Phase 7: 46 tests (Model registry serialization & inference suite)
-Phase 8: 51 tests (CI/CD configuration & dependency split suite)
-Phase 9: 59 tests (Security containment, memory limits & ID normalization suite)
+Phase 0:   0 tests (MVP Bootstrap)
+Phase 1:   4 tests (Runtime crash regression suite)
+Phase 2:   7 tests (Data integrity & cleaning suite)
+Phase 3:  11 tests (ML clustering & persona suite)
+Phase 4:  16 tests (Cohort heatmap & RFM engine suite)
+Phase 5:  28 tests (Cloud storage, S3 mocking & Parquet suite)
+Phase 6:  34 tests (Docker configuration & container validation suite)
+Phase 7:  46 tests (Model registry serialization & inference suite)
+Phase 8:  51 tests (CI/CD configuration & dependency split suite)
+Phase 9:  59 tests (Security containment, memory limits & ID normalization suite)
 Phase 10: 65 tests (Analytical correctness, pre-scale variance, rule-based personas & net returns suite)
 Hardening: 68 tests (End-to-end currency localization, bracket indexing & typing audit suite)
+Phase 11: 75 tests (Architectural decoupling, headless core & unified sklearn pipeline suite)
+Phase 12: 84 tests (Quintile heuristic baselines, full Streamlit UI AppTest smoke suite, Ruff & Pyright quality gates)
 ```
 
 ### Test Suite Breakdown
 
 | Suite File | Tests | Focus Areas |
 |---|:---:|---|
-| [`tests/test_ci_config.py`](tests/test_ci_config.py) | **2** | GitHub Actions workflow YAML parsing, requirements decoupling |
+| [`tests/test_ci_config.py`](tests/test_ci_config.py) | **2** | GitHub Actions workflow YAML parsing, requirements decoupling, Ruff, Pyright & Docker build gates |
 | [`tests/test_cleaning.py`](tests/test_cleaning.py) | **11** | Accounting negatives, string-float normalization, leading zeros, null invoices, net returns policy, currency export |
 | [`tests/test_cloud_storage.py`](tests/test_cloud_storage.py) | **12** | S3 mock load/upload, path traversal prevention, 50MB size limit, Parquet roundtrip |
 | [`tests/test_clustering.py`](tests/test_clustering.py) | **5** | Optimal $k$ evaluation, silhouette scoring, low-variance input interception, pre-scaling variance guard |
 | [`tests/test_cohort.py`](tests/test_cohort.py) | **2** | Monthly retention pivot table, non-contiguous month index reindexing |
+| [`tests/test_decoupling_and_pipeline.py`](tests/test_decoupling_and_pipeline.py) | **7** | Streamlit-free core modules, headless pipeline, unified `pipeline.joblib` serialization, inference parity, legacy fallback |
 | [`tests/test_docker_config.py`](tests/test_docker_config.py) | **3** | Dockerfile syntax, unprivileged user configuration, compose file integrity |
 | [`tests/test_ingestion.py`](tests/test_ingestion.py) | **9** | CSV parsing, `StringIO` streams, duplicate mapping rejection, sample dataset integrity |
 | [`tests/test_model_registry.py`](tests/test_model_registry.py) | **9** | Artifact serialization, version cataloging, single-customer inference, AppTest smoke tests |
+| [`tests/test_pages_smoke.py`](tests/test_pages_smoke.py) | **6** | Headless Streamlit `AppTest` smoke suite covering empty guard states and populated analytical sessions across all 6 pages |
 | [`tests/test_personas.py`](tests/test_personas.py) | **4** | Composite percentile ranking, $k=10$ unique collision labels, rule-based classification, global dictionary immutability, bracket indexing |
-| [`tests/test_rfm.py`](tests/test_rfm.py) | **11** | Recency/Frequency/Monetary math, zero-spend customer handling, aggregation correctness, net refund RFM handling, currency visualization suite |
-| **Total** | **68** | **100% Pass Rate (0 failures, 0 skipped, execution time ~15s)** |
+| [`tests/test_rfm.py`](tests/test_rfm.py) | **14** | Recency/Frequency/Monetary math, zero-spend customer handling, aggregation correctness, net refunds, currency visualization, quintile baseline scoring |
+| **Total** | **84** | **100% Pass Rate (0 failures, 0 skipped, execution time ~25s)** |
 
 ---
 
@@ -533,28 +550,32 @@ The repository history reflects structured, semantic commits aligned with projec
 | `c09907f` | `fix: analytical correctness — pre-scale variance guard, rule-based personas, net returns, configurable currency (Phase 10)` | Phase 10 |
 | `169a7cf` | `fix: resolve audit bugs — SEGMENT_COLORS bracket indexing, Optional typing, and end-to-end currency propagation (68 tests)` | Hardening |
 | `cfbb5ac` | `docs: archive implementation plan into progress report and untrack implementation_plan.md` | Governance |
+| `211787f` | `refactor: architectural decoupling — remove Streamlit from core, unified sklearn pipeline, explicit model persistence (Phase 11)` | Phase 11 |
+| `3129b64` | `ci: production engineering — ruff, pyright, docker build in CI, quintile baselines, smoke suite (Phase 12)` | Phase 12 |
 
 ---
 
-## 8. Upcoming Roadmap & Next Phases (Phases 11–12)
+## 8. Upcoming Roadmap & Next Phases (Post-MVP)
 
-The implementation roadmap outlines two upcoming phases to complete the project's journey to production-grade data engineering:
+All twelve planned phases of the core engineering roadmap have been successfully implemented and verified:
 
 ```mermaid
 graph TD
     P10["Phase 10: Analytical Correctness (Completed)"] --> HARDEN["Hardening Audit (Completed - 68 tests)"]
-    HARDEN --> P11["Phase 11: Architectural Decoupling & Pipeline Robustness"]
-    P11 --> P12["Phase 12: Production Engineering & Validation"]
+    HARDEN --> P11["Phase 11: Architectural Decoupling & Pipeline Robustness (Completed - 75 tests)"]
+    P11 --> P12["Phase 12: Production Engineering & Validation (Completed - 84 tests)"]
+    P12 --> POSTMVP["Post-MVP Extended Roadmap (Churn, Sankey, BigQuery)"]
 ```
 
-### Phase 11: Architectural Decoupling & Pipeline Robustness
-- **Core Library Decoupling:** Remove all Streamlit UI imports (`streamlit`, `@st.cache_data`) from `src/`, migrating caching to an orchestration service layer to enable headless CLI and API execution.
-- **Unified scikit-learn Pipeline:** Bundle `FunctionTransformer(np.log1p)`, `StandardScaler()`, and `KMeans()` into a single `sklearn.pipeline.Pipeline` object to eliminate preprocessing drift.
-- **Explicit Model Promotion:** Replace automatic background model saving with an intentional "Promote to Registry" button in the UI.
+### Phase 11: Architectural Decoupling & Pipeline Robustness (Completed)
+- **Core Library Decoupling:** Removed all Streamlit UI imports (`streamlit`, `@st.cache_data`) from `src/`, migrating caching to `services/segmentation_service.py` to enable headless CLI and API execution.
+- **Unified scikit-learn Pipeline:** Bundled `FunctionTransformer(np.log1p)`, `StandardScaler()`, and `KMeans()` into a single `sklearn.pipeline.Pipeline` object to eliminate preprocessing drift.
+- **Explicit Model Promotion:** Replaced automatic background model saving with an intentional "Promote Model to Registry" button in the UI.
 
-### Phase 12: Production Engineering & Validation
-- **CI Quality Gates:** Add `ruff` linting, `pyright` static type validation, and Docker container build verification to GitHub Actions.
-- **Analytical Baselines:** Benchmark K-Means clusters against traditional quintile-based RFM scoring and display the reference snapshot date on all customer profiles.
+### Phase 12: Production Engineering & Validation (Completed)
+- **CI Quality Gates:** Added `ruff` linting, `pyright` static type validation, and Docker container build verification to GitHub Actions.
+- **Analytical Baselines:** Implemented traditional quintile-based RFM scoring baseline alongside K-Means clusters and displayed the reference snapshot date on customer profiles.
+- **AppTest Smoke Suite:** Full automated headless Streamlit UI smoke testing verifying all 6 views under empty and populated session states.
 
 ---
 
@@ -587,7 +608,7 @@ graph TD
 | **10** | **Analytical Correctness** | Rigorous behavioral logic | Pre-scaling variance evaluation, rule-based persona thresholds, return-aware `CleaningPolicy` (Gross vs Net), currency localization | 65 | **Completed** |
 | **Audit** | **Quality & Edge Case Hardening** | Zero-defect production audit | `_SegmentColorsDict` bracket indexing, `Optional` typing import, end-to-end currency propagation across all 6 pages/charts | 68 | **Completed** |
 | **11** | **Architectural Decoupling** | Headless core analytics | Remove Streamlit imports from `src/`, unified `sklearn.pipeline.Pipeline` artifact, explicit "Promote Model" button | 75 | **Completed** |
-| **12** | **Production Engineering** | Production gates & baselines | `ruff` linting, `pyright` type checks, Docker build in CI, quintile RFM baselines, snapshot date UI | — | *Roadmap* |
+| **12** | **Production Engineering** | Production gates & baselines | `ruff` linting, `pyright` type checks, Docker build in CI, quintile RFM baselines, snapshot date UI, AppTest smoke suite | 84 | **Completed** |
 
 ### 9.3 Standard Phase Completion Protocol
 
@@ -651,4 +672,4 @@ The project enforces strict separation between production runtime requirements a
 ---
 
 > **Report Conclusion:**  
-> RFM Cluster360 has completed **Phases 0 through 11** with zero failing tests (75/75 passed), comprehensive cloud, MLOps, security, analytical correctness, headless architecture decoupling, and unified pipeline capabilities. The master implementation record is fully archived, and the codebase is completely verified, containerized, documented, and synchronized with GitHub.
+> RFM Cluster360 has completed **Phases 0 through 12** with zero failing tests (84/84 passed), zero Ruff linting errors, zero Pyright static typing errors, comprehensive cloud storage, MLOps registry with unified pipelines, security hardening, analytical correctness, headless architecture decoupling, and production CI quality gates. The master implementation record is fully archived, and the codebase is completely verified, containerized, documented, and production-ready.

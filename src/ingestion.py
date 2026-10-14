@@ -10,7 +10,6 @@ import pandas as pd
 
 from config.settings import (
     COLUMN_ALIASES,
-    MAX_FILE_SIZE_BYTES,
     MAX_FILE_SIZE_MB,
     REQUIRED_COLUMNS,
     SUPPORTED_ENCODINGS,

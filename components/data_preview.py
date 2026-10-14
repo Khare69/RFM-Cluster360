@@ -2,7 +2,7 @@
 Data preview and transparent cleaning report UI component.
 """
 
-from typing import Dict, List, Optional
+from typing import Dict, Optional
 import pandas as pd
 import streamlit as st
 
@@ -56,7 +56,7 @@ def render_column_mapping_ui(
         with cols[i]:
             detected = detected_mapping.get(canonical)
             default_idx = available_cols.index(detected) if detected in available_cols else 0
-            
+
             chosen = st.selectbox(
                 label=canonical_labels.get(canonical, canonical),
                 options=available_cols,
@@ -94,7 +94,7 @@ def render_cleaning_report_card(
     """
     curr_sym = currency_symbol or st.session_state.get("currency_symbol", "$")
     st.markdown("#### 🧹 Step 2: Data Cleaning & Hygiene Audit")
-    
+
     col1, col2, col3, col4 = st.columns(4)
     with col1:
         st.metric("Raw Rows Uploaded", f"{report.total_rows_before:,}")

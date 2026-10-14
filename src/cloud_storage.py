@@ -16,7 +16,6 @@ from config.settings import (
     AWS_ACCESS_KEY_ID,
     AWS_DEFAULT_REGION,
     AWS_SECRET_ACCESS_KEY,
-    MAX_FILE_SIZE_BYTES,
     MAX_FILE_SIZE_MB,
     MOCK_S3_DIR,
     USE_LOCAL_MOCK,

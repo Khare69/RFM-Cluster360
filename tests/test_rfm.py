@@ -2,11 +2,15 @@
 Unit tests for RFM (Recency, Frequency, Monetary) metric calculations.
 """
 
-from datetime import datetime
 import pandas as pd
 import pytest
 
-from src.rfm import calculate_rfm, default_snapshot_date, get_rfm_summary_stats
+from src.rfm import (
+    calculate_rfm,
+    compute_rfm_quintiles,
+    default_snapshot_date,
+    get_rfm_summary_stats,
+)
 
 
 def test_calculate_rfm_hand_calculated(clean_test_transactions):
@@ -189,6 +193,79 @@ def test_customer_timeline_and_benchmark_custom_currency():
 
     fig_timeline = customer_purchase_timeline(tx_df, "C1", currency_symbol="£")
     assert "Order Total (£)" in fig_timeline.layout.yaxis.title.text
+
+
+def test_compute_rfm_quintiles_deterministic_scoring():
+    """Verify compute_rfm_quintiles properly assigns 1-5 scores, reverses recency, and calculates rfm_score and total."""
+    df = pd.DataFrame([
+        {"customer_id": "C1", "recency": 2, "frequency": 10, "monetary": 1000.0},
+        {"customer_id": "C2", "recency": 10, "frequency": 5, "monetary": 500.0},
+        {"customer_id": "C3", "recency": 30, "frequency": 3, "monetary": 200.0},
+        {"customer_id": "C4", "recency": 60, "frequency": 2, "monetary": 100.0},
+        {"customer_id": "C5", "recency": 120, "frequency": 1, "monetary": 20.0},
+    ])
+    result = compute_rfm_quintiles(df)
+
+    assert "r_score" in result.columns
+    assert "f_score" in result.columns
+    assert "m_score" in result.columns
+    assert "rfm_score" in result.columns
+    assert "rfm_total" in result.columns
+
+    r_map = result.set_index("customer_id")
+    # C1 is best across all (lowest recency, highest freq, highest spend)
+    assert r_map.loc["C1", "r_score"] == 5
+    assert r_map.loc["C1", "f_score"] == 5
+    assert r_map.loc["C1", "m_score"] == 5
+    assert r_map.loc["C1", "rfm_score"] == "555"
+    assert r_map.loc["C1", "rfm_total"] == 15
+
+    # C5 is worst across all
+    assert r_map.loc["C5", "r_score"] == 1
+    assert r_map.loc["C5", "f_score"] == 1
+    assert r_map.loc["C5", "m_score"] == 1
+    assert r_map.loc["C5", "rfm_score"] == "111"
+    assert r_map.loc["C5", "rfm_total"] == 3
+
+
+def test_compute_rfm_quintiles_handles_ties_without_bin_error():
+    """Verify compute_rfm_quintiles handles tie-heavy data (e.g., 90% single-order customers) safely."""
+    # 10 customers where 8 have frequency 1
+    rows = []
+    for i in range(10):
+        rows.append({
+            "customer_id": f"C{i}",
+            "recency": i * 10,
+            "frequency": 1 if i < 8 else (i - 6) * 5,
+            "monetary": (i + 1) * 25.0,
+        })
+    df = pd.DataFrame(rows)
+    # Should not raise 'ValueError: Bin edges must be unique'
+    result = compute_rfm_quintiles(df)
+    assert len(result) == 10
+    assert result["f_score"].between(1, 5).all()
+    assert result["r_score"].between(1, 5).all()
+
+
+def test_compute_rfm_quintiles_small_dataset_and_empty():
+    """Verify compute_rfm_quintiles handles datasets with fewer than 5 rows and empty DataFrames."""
+    # Empty
+    empty_df = pd.DataFrame(columns=["customer_id", "recency", "frequency", "monetary"])
+    res_empty = compute_rfm_quintiles(empty_df)
+    assert "rfm_score" in res_empty.columns
+    assert len(res_empty) == 0
+
+    # 1 sample
+    single_df = pd.DataFrame([{"customer_id": "C1", "recency": 10, "frequency": 1, "monetary": 50.0}])
+    res_single = compute_rfm_quintiles(single_df)
+    assert res_single.iloc[0]["rfm_score"] == "555"
+    assert res_single.iloc[0]["rfm_total"] == 15
+
+    # Missing required column
+    invalid_df = pd.DataFrame([{"customer_id": "C1", "recency": 10}])
+    with pytest.raises(ValueError, match="Required metric 'frequency' not found"):
+        compute_rfm_quintiles(invalid_df)
+
 
 
 

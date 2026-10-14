@@ -3,7 +3,6 @@ Unit tests for S3 cloud storage integration, Parquet serialization, and local mo
 """
 
 import io
-import os
 import boto3
 from moto import mock_aws
 import pandas as pd
@@ -15,7 +14,7 @@ from src.cloud_storage import (
     load_from_s3,
     upload_to_s3,
 )
-from src.export import to_csv_bytes, to_parquet_bytes
+from src.export import to_parquet_bytes
 
 
 @pytest.fixture
@@ -279,7 +278,6 @@ def test_upload_to_s3_input_validation(sample_rfm_df):
 
 def test_mock_s3_path_traversal_prevention(tmp_path):
     """Verifies get_mock_s3_path rejects relative paths that escape the mock storage root."""
-    from src.cloud_storage import get_mock_s3_path
 
     mock_dir = str(tmp_path / "mock_root")
 

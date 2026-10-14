@@ -3,7 +3,6 @@ Unit tests for data validation, cleaning rules, and transparent metric reporting
 """
 
 import pandas as pd
-import pytest
 
 from src.cleaning import clean_transactions, detect_duplicates
 
@@ -241,7 +240,7 @@ def test_clean_transactions_net_returns_policy():
     assert round(report.refund_rate_pct, 2) == 8.33  # 10 / 120 * 100
     assert len(clean_df) == 3
     assert "is_refund" in clean_df.columns
-    assert clean_df.loc[clean_df["invoice_no"] == "C1002", "is_refund"].iloc[0] == True
+    assert bool(clean_df.loc[clean_df["invoice_no"] == "C1002", "is_refund"].iloc[0]) is True
 
 
 def test_export_dataframe_with_custom_currency():

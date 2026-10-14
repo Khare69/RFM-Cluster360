@@ -4,7 +4,7 @@ Pure pandas operations, completely unit-testable without database or UI dependen
 """
 
 from datetime import date, datetime
-from typing import Optional, Union, Dict, Any
+from typing import Optional, Union, Dict
 import numpy as np
 import pandas as pd
 
@@ -25,11 +25,11 @@ def default_snapshot_date(df: pd.DataFrame) -> pd.Timestamp:
     """
     if df.empty or "invoice_date" not in df.columns:
         raise ValueError("DataFrame is empty or missing 'invoice_date' column.")
-    
+
     max_date = pd.to_datetime(df["invoice_date"]).max()
     if pd.isna(max_date):
         raise ValueError("No valid dates found in 'invoice_date' column.")
-    
+
     # Snap to midnight of the following day
     return pd.Timestamp(max_date.date()) + pd.Timedelta(days=1)
 
@@ -112,10 +112,10 @@ def calculate_rfm(
     rfm = pd.DataFrame()
     cust_ids = grouped.index.astype(str)
     rfm["customer_id"] = cust_ids
-    
+
     last_dates = grouped[("invoice_date", "max")]
     first_dates = grouped[("invoice_date", "min")]
-    
+
     # Recency: based on latest purchase order if available, else latest transaction
     pos_orders = work_df[work_df["quantity"] > 0]
     if not pos_orders.empty:
@@ -134,7 +134,7 @@ def calculate_rfm(
     # Monetary (sum of line totals, defensively bounded at 0.0 for log1p)
     raw_monetary = np.round(grouped[("line_total", "sum")].values.astype(float), 2)
     rfm["monetary"] = np.maximum(0.0, raw_monetary)
-    
+
     rfm["first_purchase"] = first_dates.values
     rfm["last_purchase"] = last_dates.values
 
@@ -179,3 +179,83 @@ def get_rfm_summary_stats(rfm_df: pd.DataFrame) -> Dict[str, Dict[str, float]]:
                 "max": round(float(s.max()), 2),
             }
     return stats
+
+
+def compute_rfm_quintiles(rfm_df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Computes traditional 1-5 quintile scores for Recency, Frequency, and Monetary metrics.
+    Provides an interpretable heuristic baseline alongside unsupervised K-Means clustering.
+
+    Scoring logic:
+    - R_Score (1-5): 5 is most recent (lowest recency days), 1 is least recent.
+    - F_Score (1-5): 5 is highest order frequency, 1 is lowest order frequency.
+    - M_Score (1-5): 5 is highest monetary spend, 1 is lowest monetary spend.
+    - RFM_Score (str): 3-digit score concatenation (e.g., '555', '111').
+    - RFM_Total (int): Sum of R, F, and M scores (3 to 15).
+
+    Parameters
+    ----------
+    rfm_df : pd.DataFrame
+        DataFrame containing 'customer_id', 'recency', 'frequency', and 'monetary'.
+
+    Returns
+    -------
+    pd.DataFrame
+        DataFrame with added 'r_score', 'f_score', 'm_score', 'rfm_score', and 'rfm_total'.
+    """
+    if rfm_df.empty:
+        df_copy = rfm_df.copy()
+        for col in ["r_score", "f_score", "m_score", "rfm_total"]:
+            df_copy[col] = pd.Series(dtype=int)
+        df_copy["rfm_score"] = pd.Series(dtype=str)
+        return df_copy
+
+    for req_col in ["recency", "frequency", "monetary"]:
+        if req_col not in rfm_df.columns:
+            raise ValueError(f"Required metric '{req_col}' not found in RFM DataFrame.")
+
+    df_copy = rfm_df.copy()
+    n_samples = len(df_copy)
+    q = min(5, n_samples)
+
+    if q < 2:
+        df_copy["r_score"] = 5
+        df_copy["f_score"] = 5
+        df_copy["m_score"] = 5
+        df_copy["rfm_score"] = "555"
+        df_copy["rfm_total"] = 15
+        return df_copy
+
+    labels = list(range(1, q + 1))
+
+    # Recency: lower recency is better -> ascending=False maps lowest days to highest rank (5)
+    r_score = pd.qcut(
+        df_copy["recency"].rank(method="first", ascending=False),
+        q=q,
+        labels=labels,
+    ).astype(int)
+
+    # Frequency: higher frequency is better -> ascending=True maps highest orders to highest rank (5)
+    f_score = pd.qcut(
+        df_copy["frequency"].rank(method="first", ascending=True),
+        q=q,
+        labels=labels,
+    ).astype(int)
+
+    # Monetary: higher monetary is better -> ascending=True maps highest spend to highest rank (5)
+    m_score = pd.qcut(
+        df_copy["monetary"].rank(method="first", ascending=True),
+        q=q,
+        labels=labels,
+    ).astype(int)
+
+    df_copy["r_score"] = r_score
+    df_copy["f_score"] = f_score
+    df_copy["m_score"] = m_score
+    df_copy["rfm_score"] = (
+        r_score.astype(str) + f_score.astype(str) + m_score.astype(str)
+    )
+    df_copy["rfm_total"] = r_score + f_score + m_score
+
+    return df_copy
+

@@ -12,7 +12,7 @@ concurrency:
 
 jobs:
   test:
-    name: Run Pytest Suite & Code Integrity
+    name: Lint, Type Check & Test Suite
     runs-on: ubuntu-latest
 
     steps:
@@ -30,6 +30,18 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt -r requirements-dev.txt
 
+      - name: Code Quality & Linting (Ruff)
+        run: |
+          ruff check .
+
+      - name: Static Type Validation (Pyright)
+        run: |
+          pyright
+
       - name: Run Pytest Suite
         run: |
           pytest -v --tb=short
+
+      - name: Build Docker Image
+        run: |
+          docker build -t rfm-cluster360:test .

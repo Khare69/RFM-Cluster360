@@ -18,7 +18,6 @@ from config.settings import MAX_FILE_SIZE_MB, RANDOM_STATE
 from src.clustering import (
     evaluate_clusters as _evaluate_clusters,
     preprocess_rfm as _preprocess_rfm,
-    run_kmeans as _run_kmeans,
 )
 from src.ingestion import load_csv as _load_csv
 from src.model_registry import save_model_artifact as _save_model_artifact

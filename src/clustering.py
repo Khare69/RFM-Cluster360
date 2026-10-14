@@ -3,7 +3,7 @@ Machine Learning module for RFM clustering using K-Means.
 Implements log-transformations, standardization, automatic k-selection via silhouette scores, and cluster profiling.
 """
 
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple
 import numpy as np
 import pandas as pd
 from sklearn.cluster import KMeans

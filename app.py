@@ -3,8 +3,8 @@ RFM Cluster360 — Main Application Entrypoint.
 Orchestrates file ingestion, interactive column mapping, data cleaning, RFM calculation, and clustering pipeline.
 """
 
-from datetime import datetime
 import os
+from typing import Optional
 import pandas as pd
 import streamlit as st
 
@@ -32,7 +32,7 @@ from src.clustering import build_clustered_df, run_kmeans
 from src.cohort import build_cohort_matrix
 from src.ingestion import auto_map_columns, validate_mapping
 from src.personas import label_segments
-from src.rfm import default_snapshot_date
+from src.rfm import compute_rfm_quintiles, default_snapshot_date
 
 # Configure Streamlit page layout and appearance
 st.set_page_config(
@@ -120,6 +120,7 @@ def run_pipeline(
         labels, _, kmeans_model = run_kmeans(scaled_data, k=chosen_k)
         clustered_df = build_clustered_df(rfm_df, labels)
         labeled_df, cluster_map = label_segments(clustered_df)
+        labeled_df = compute_rfm_quintiles(labeled_df)
 
     with st.spinner("5/5 Generating monthly cohort retention matrix..."):
         retention_matrix, counts_matrix = build_cohort_matrix(clean_df)
@@ -170,7 +171,7 @@ def main():
 
         st.sidebar.markdown("---")
         st.sidebar.markdown("### ⚙️ Model Parameters")
-        
+
         # Allow user to tweak k on the fly
         curr_k = st.session_state.selected_k
         eval_metrics = st.session_state.clustering_metrics
@@ -193,29 +194,19 @@ def main():
             st.sidebar.info(f"k is fixed at {min_k_val} for this dataset size")
         if new_k != curr_k:
             if st.sidebar.button("Apply New k", type="primary", use_container_width=True):
-                scaled_data, scaler, feature_cols = preprocess_rfm(st.session_state.rfm_df)
+                scaled_data, scaler, feature_cols = cached_preprocess_rfm(st.session_state.rfm_df)
                 labels, _, kmeans_model = run_kmeans(scaled_data, k=new_k)
                 clustered_df = build_clustered_df(st.session_state.rfm_df, labels)
                 labeled_df, cluster_map = label_segments(clustered_df)
+                labeled_df = compute_rfm_quintiles(labeled_df)
                 st.session_state.clustered_df = clustered_df
                 st.session_state.labeled_df = labeled_df
                 st.session_state.selected_k = new_k
                 st.session_state.cluster_map = cluster_map
                 st.session_state.fitted_model = kmeans_model
                 st.session_state.fitted_scaler = scaler
-                try:
-                    saved_ver = save_model_artifact(
-                        model=kmeans_model,
-                        scaler=scaler,
-                        cluster_map=cluster_map,
-                        eval_metrics=st.session_state.clustering_metrics,
-                        feature_names=feature_cols,
-                        customer_count=len(st.session_state.rfm_df),
-                        notes=f"Re-clustered model artifact (k={new_k})",
-                    )
-                    st.session_state.model_version = saved_ver
-                except Exception:
-                    pass
+                st.session_state.feature_cols = feature_cols
+                st.session_state.model_version = None
                 st.rerun()
 
     # Main Page Title & Intro
@@ -406,7 +397,7 @@ def main():
     # If dataset is loaded and pipeline has executed:
     else:
         st.success("🎉 **Customer Segmentation Pipeline Complete!**")
-        
+
         # Display Data Hygiene Audit
         if st.session_state.cleaning_report:
             render_cleaning_report_card(

@@ -4,7 +4,7 @@ All magic numbers, defaults, and column aliases are centralized here.
 """
 
 import os
-from typing import Dict, List, Tuple
+from typing import Dict, List
 from dotenv import load_dotenv
 
 load_dotenv()

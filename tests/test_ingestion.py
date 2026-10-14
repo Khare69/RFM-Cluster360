@@ -4,7 +4,6 @@ Unit tests for CSV ingestion, encoding detection, and fuzzy column auto-mapping.
 
 import io
 import pandas as pd
-import pytest
 
 from src.ingestion import auto_map_columns, load_csv, validate_mapping
 

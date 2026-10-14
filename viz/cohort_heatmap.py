@@ -5,7 +5,6 @@ Cohort retention heatmap visualizer.
 from typing import Optional
 import numpy as np
 import pandas as pd
-import plotly.figure_factory as ff
 import plotly.graph_objects as go
 
 

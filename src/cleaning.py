@@ -100,7 +100,7 @@ def clean_transactions(
 
     # Invert mapping to select and rename columns
     inv_map = {actual: canonical for canonical, actual in mapping.items() if actual is not None}
-    
+
     # Rename mapped columns
     work_df = work_df.rename(columns=inv_map)
 

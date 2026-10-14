@@ -4,3 +4,5 @@
 
 pytest>=7.4.0
 moto>=4.2.0
+ruff>=0.1.0
+pyright>=1.1.300

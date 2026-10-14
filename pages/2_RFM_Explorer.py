@@ -7,7 +7,7 @@ import streamlit as st
 
 from components.filters import render_sidebar_filters
 from src.clustering import get_cluster_profiles
-from src.rfm import get_rfm_summary_stats
+from src.rfm import compute_rfm_quintiles, get_rfm_summary_stats
 from viz.rfm_charts import (
     elbow_curve,
     rfm_histograms,
@@ -60,6 +60,31 @@ with tab_dist:
     stats_df.index.name = "Metric"
     st.dataframe(stats_df, use_container_width=True)
 
+    st.markdown("---")
+    st.markdown("#### 🎯 Traditional RFM Quintile Baseline (1–5 Scores)")
+    st.markdown(
+        "Traditional quintile scoring divides customers into 5 quantile tiers per metric (where 5 is highest engagement / spend, and 1 is lowest). "
+        "This serves as a transparent heuristic benchmark alongside K-Means ML clusters."
+    )
+    if "rfm_score" not in filtered_df.columns:
+        filtered_df = compute_rfm_quintiles(filtered_df)
+
+    q_cols = st.columns(4)
+    with q_cols[0]:
+        st.metric("Avg Recency Score (R)", f"{filtered_df['r_score'].mean():.2f} / 5")
+    with q_cols[1]:
+        st.metric("Avg Frequency Score (F)", f"{filtered_df['f_score'].mean():.2f} / 5")
+    with q_cols[2]:
+        st.metric("Avg Monetary Score (M)", f"{filtered_df['m_score'].mean():.2f} / 5")
+    with q_cols[3]:
+        st.metric("Avg RFM Total", f"{filtered_df['rfm_total'].mean():.1f} / 15")
+
+    with st.expander("🏆 Top RFM Quintile Score Combinations in Filtered Dataset"):
+        score_counts = filtered_df["rfm_score"].value_counts().head(10).reset_index()
+        score_counts.columns = ["RFM Score", "Customer Count"]
+        score_counts["% of Base"] = (score_counts["Customer Count"] / len(filtered_df) * 100).round(1).astype(str) + "%"
+        st.dataframe(score_counts, use_container_width=True, hide_index=True)
+
 with tab_ml:
     st.subheader("How the Algorithm Chose the Number of Clusters (k)")
     st.markdown(
@@ -95,7 +120,7 @@ with tab_ml:
 with tab_dna:
     st.subheader("Segment Attribute Comparison (DNA Radar)")
     st.markdown("Compares the relative strengths and behavioral signatures of each segment.")
-    
+
     fig_radar = segment_radar_comparison(filtered_df)
     st.plotly_chart(fig_radar, use_container_width=True)
 

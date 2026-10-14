@@ -2,7 +2,6 @@
 Customer profile visualizations: Individual transaction timeline and percentile comparison metrics.
 """
 
-from typing import Dict
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go

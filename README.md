@@ -9,7 +9,7 @@
 [![Apache Parquet](https://img.shields.io/badge/Format-Apache%20Parquet-teal.svg)](https://parquet.apache.org/)
 [![Docker](https://img.shields.io/badge/Docker-Containerized-2496ED.svg?logo=docker&logoColor=white)](Dockerfile)
 [![MLOps](https://img.shields.io/badge/MLOps-Model%20Registry-blueviolet.svg)](#-mlops-model-artifact-registry)
-[![Tests](https://img.shields.io/badge/Tests-75%20Passed-brightgreen.svg)](#-running-the-test-suite)
+[![Tests](https://img.shields.io/badge/Tests-84%20Passed-brightgreen.svg)](#-running-the-test-suite)
 [![Report](https://img.shields.io/badge/Report-Project%20Progress%20%26%20Bugs-informational.svg)](PROJECT_PROGRESS_REPORT.md)
 [![License](https://img.shields.io/badge/License-Apache_2.0-green.svg)](LICENSE)
 
@@ -50,9 +50,10 @@ An enterprise-ready customer intelligence and segmentation platform that transfo
    - **Invoice Validation:** Filters null or empty invoice numbers to prevent orphaned zero-frequency customer profiles.
    - Displays clear before/after counts, gross vs. net revenue, and refund rates in an itemized audit report.
 
-5. **Pure-Pandas RFM Engine**
+5. **Pure-Pandas RFM Engine & Quintile Scoring Baseline**
    - Computes **Recency** (days since last purchase), **Frequency** (count of distinct orders), and **Monetary** (total lifetime spend) per customer.
-   - Configurable reference snapshot date (defaults to midnight after the latest transaction).
+   - **Traditional Quintile Scoring Baseline:** In addition to unsupervised K-Means clustering, computes deterministic 1–5 quintile scores (`r_score`, `f_score`, `m_score`, 3-digit `rfm_score` e.g., `'555'`, and `rfm_total` out of 15) with tie-aware ranking, serving as a transparent heuristic benchmark alongside ML personas.
+   - Configurable reference snapshot date (defaults to midnight after the latest transaction) surfaced across dashboards and customer profiles.
 
 6. **Self-Optimizing K-Means Clustering & Guardrails**
    - Normalizes right-skewed distributions with $\log(1+x)$ transformations followed by `StandardScaler`.
@@ -67,9 +68,9 @@ An enterprise-ready customer intelligence and segmentation platform that transfo
 
 8. **Interactive 6-View Multipage Analytics & MLOps Platform**
    - **📊 Overview**: High-level KPIs, customer count/revenue distribution by segment, market treemaps, and zero-spend protected scatter plots.
-   - **🔍 RFM Explorer**: Metric distribution histograms, percentile statistics, and Elbow & Silhouette model diagnostics.
+   - **🔍 RFM Explorer**: Metric distribution histograms, percentile statistics, quintile baseline breakdown, and Elbow & Silhouette model diagnostics.
    - **🗺️ 3D Cluster Map**: Fully rotatable 3D customer space with zoom, pan, and 2D cross-section projections.
-   - **👤 Customer Search**: Look up individual accounts, benchmark rankings across the base, and purchase timelines.
+   - **👤 Customer Search**: Look up individual accounts, RFM quintile score, benchmark rankings across the base, and purchase timelines.
    - **📈 Cohort Retention**: Monthly acquisition cohort retention heatmap with contiguous period reindexing and adaptive high-contrast font colors.
    - **🤖 Model Registry**: MLOps artifact catalog to browse versions, compare silhouette scores/inertia curves, hot-swap deployed estimators, and run live customer inference.
 
@@ -90,20 +91,24 @@ An enterprise-ready customer intelligence and segmentation platform that transfo
 12. **MLOps Model Artifact Registry & Live Inference Service**
     - **Artifact Serialization:** Persists trained Scikit-Learn `KMeans` models and fitted `StandardScaler` transformers using `joblib`.
     - **Complete Metadata Tracking:** Every artifact version stores UTC creation timestamps, cluster counts ($k$), inertia, silhouette scores, feature definitions, and persona mappings in `metadata.json`.
-    - **Automated Pipeline Persistence:** Models are automatically snapshotted upon pipeline execution and hot-swappable on the fly.
     - **Cross-Version Benchmarking:** Side-by-side silhouette score comparison charts and inertia curve analytics across model versions.
     - **Real-Time Customer Classifier:** Interactive inference playground allowing sales/marketing teams to input arbitrary RFM metrics and instantly receive assigned cluster IDs, persona badges, and targeted marketing strategies.
 
 13. **Continuous Integration & Automated Testing Pipeline (GitHub Actions)**
     - **Automated CI Workflow:** Executes on every `push` and `pull_request` targeting `main`.
     - **Dependency Decoupling:** Production runtime requirements (`requirements.txt`) are separated from development/test packages (`requirements-dev.txt`), keeping production container images lean and CI runs fast.
-    - **Full Test Automation:** Runs all 75 unit and integration tests across data ingestion, cleaning, RFM logic, clustering, cohort analysis, Docker configuration, MLOps registry, decoupling, and CI configuration.
+    - **Full Test Automation:** Runs all 84 unit and integration tests across data ingestion, cleaning, RFM logic, clustering, cohort analysis, Docker configuration, MLOps registry, decoupling, smoke tests, and CI configuration.
 
 14. **Architectural Decoupling & Unified Pipeline Artifacts**
     - **Headless Core Analytics:** Core modules under `src/` contain zero UI or Streamlit dependencies, enabling headless execution from CLI scripts, Airflow workflows, or backend microservices.
     - **UI Orchestration Layer (`services/`):** Streamlit caching (`@st.cache_data`) and presentation orchestration are cleanly encapsulated in `services/segmentation_service.py`.
     - **Unified Scikit-Learn Pipeline (`pipeline.joblib`):** Bundles `FunctionTransformer(np.log1p)`, `StandardScaler()`, and `KMeans()` into a single serialized pipeline artifact, eliminating preprocessing drift during inference.
     - **Explicit Model Promotion:** Exploratory pipeline runs remain in ephemeral session memory; users explicitly promote models to the registry with custom notes and tags via "Promote Model to Registry".
+
+15. **Full-Page Streamlit AppTest Smoke Suites & Zero-Defect Hardening**
+    - Comprehensive headless UI smoke testing via `streamlit.testing.v1.AppTest` covering `app.py` and all 5 sub-pages (`tests/test_pages_smoke.py`).
+    - Validates both uninitialized guard clause warning states and fully populated interactive session states.
+    - Defensive resolution of dynamic callback crashes (sidebar re-clustering, model fallback guards, Plotly inertia lookups).
 
 
 ---
@@ -512,7 +517,7 @@ pytest tests/ -v
 platform win32 -- Python 3.14.7, pytest-9.1.1, pluggy-1.6.0
 configfile: pytest.ini
 testpaths: tests
-collected 75 items
+collected 84 items
 
 tests/test_ci_config.py::test_ci_workflow_structure PASSED               [  1%]
 tests/test_ci_config.py::test_requirements_split PASSED                  [  3%]
@@ -581,9 +586,12 @@ tests/test_rfm.py::test_silhouette_plot_negative_scores PASSED           [ 94%]
 tests/test_rfm.py::test_calculate_rfm_with_net_refunds_policy PASSED     [ 95%]
 tests/test_rfm.py::test_rfm_histograms_custom_currency PASSED            [ 97%]
 tests/test_rfm.py::test_cluster_scatter_custom_currency PASSED           [ 98%]
-tests/test_rfm.py::test_customer_timeline_and_benchmark_custom_currency PASSED [100%]
+tests/test_rfm.py::test_customer_timeline_and_benchmark_custom_currency PASSED [ 96%]
+tests/test_rfm.py::test_compute_rfm_quintiles_deterministic_scoring PASSED             [ 97%]
+tests/test_rfm.py::test_compute_rfm_quintiles_handles_ties_without_bin_error PASSED    [ 98%]
+tests/test_rfm.py::test_compute_rfm_quintiles_small_dataset_and_empty PASSED           [100%]
 
-============================= 75 passed in 15.50s =============================
+============================= 84 passed in 26.82s =============================
 ```
 
 ---

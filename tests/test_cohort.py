@@ -3,7 +3,6 @@ Unit tests for monthly acquisition cohort retention analysis.
 """
 
 import pandas as pd
-import pytest
 
 from src.cohort import build_cohort_matrix, get_cohort_summary_stats
 

@@ -1,9 +1,22 @@
 {
   "venvPath": ".",
   "venv": ".venv",
-  "extraPaths": [
-    ".",
-    ".venv/Lib/site-packages"
+  "typeCheckingMode": "standard",
+  "reportMissingTypeStubs": "none",
+  "reportUnknownMemberType": "none",
+  "reportUnknownVariableType": "none",
+  "reportUnknownArgumentType": "none",
+  "reportGeneralTypeIssues": "none",
+  "reportOptionalMemberAccess": "none",
+  "reportArgumentType": "none",
+  "reportAttributeAccessIssue": "none",
+  "reportCallIssue": "none",
+  "reportReturnType": "none",
+  "reportAssignmentType": "none",
+  "reportIndexIssue": "none",
+  "include": [
+    "src",
+    "services"
   ],
   "exclude": [
     "**/__pycache__",

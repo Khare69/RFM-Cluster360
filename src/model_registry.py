@@ -18,7 +18,6 @@ from sklearn.cluster import KMeans
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import FunctionTransformer, StandardScaler
 
-from config.settings import MODEL_REGISTRY_DIR
 
 # Standard feature set
 DEFAULT_FEATURES: List[str] = ["recency", "frequency", "monetary"]

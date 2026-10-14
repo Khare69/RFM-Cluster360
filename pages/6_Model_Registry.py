@@ -9,10 +9,9 @@ import os
 import numpy as np
 import pandas as pd
 import plotly.express as px
-import plotly.graph_objects as go
 import streamlit as st
 
-from config.settings import DEFAULT_CLUSTER_COLORS, SEGMENT_COLORS
+from config.settings import SEGMENT_COLORS
 from src.clustering import build_clustered_df
 from src.model_registry import (
     delete_model_version,
@@ -320,7 +319,7 @@ with tab_inference:
                 active_m, active_s, active_cmap, _ = load_model_artifact(versions[0]["path"])
             except Exception as e:
                 st.error(f"Could not load fallback model: {e}")
-        else:
+        if not active_m or not active_s or not active_cmap:
             st.warning("⚠️ No trained model available for inference. Please run the segmentation pipeline first.")
             st.stop()
 

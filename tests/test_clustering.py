@@ -4,7 +4,6 @@ Unit tests for preprocessing, K-Means clustering, and evaluation metric scoring.
 
 import numpy as np
 import pandas as pd
-import pytest
 
 from src.clustering import (
     build_clustered_df,

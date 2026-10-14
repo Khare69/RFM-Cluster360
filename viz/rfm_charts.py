@@ -3,9 +3,7 @@ RFM Explorer visualizations: Metric distributions, Elbow curve, and Silhouette s
 """
 
 from typing import Any, Dict
-import numpy as np
 import pandas as pd
-import plotly.express as px
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
@@ -87,9 +85,9 @@ def elbow_curve(eval_results: Dict[str, Any]) -> go.Figure:
     """
     Inertia (Elbow Method) chart across k values.
     """
-    k_vals = eval_results["k_values"]
-    inertias = eval_results["inertias"]
-    best_k = eval_results.get("best_k", k_vals[0])
+    k_vals = eval_results.get("k_values", [])
+    inertias = eval_results.get("inertias", eval_results.get("inertia", []))
+    best_k = eval_results.get("best_k", k_vals[0] if k_vals else 2)
 
     fig = go.Figure()
 
@@ -195,7 +193,7 @@ def segment_radar_comparison(labeled_df: pd.DataFrame) -> go.Figure:
     ).reset_index()
 
     categories = ["Recency (Freshness)", "Frequency (Orders)", "Monetary (Spend)"]
-    
+
     # Invert recency so outer ring = better (fresher)
     max_r = labeled_df["recency"].max() or 1
     max_f = labeled_df["frequency"].max() or 1

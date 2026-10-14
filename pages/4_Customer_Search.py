@@ -7,6 +7,7 @@ import streamlit as st
 
 from config.settings import SEGMENT_COLORS
 from src.personas import PERSONA_DEFINITIONS
+from src.rfm import compute_rfm_quintiles
 from viz.customer_timeline import customer_benchmark_bar, customer_purchase_timeline
 
 st.set_page_config(page_title="Customer Search | RFM Cluster360", page_icon="👤", layout="wide")
@@ -22,6 +23,8 @@ st.title("👤 Customer Account Search & Timeline")
 st.markdown("Search for any individual customer to inspect their behavioral metrics, segment ranking, and purchase timeline.")
 
 labeled_df = st.session_state.labeled_df
+if "rfm_score" not in labeled_df.columns:
+    labeled_df = compute_rfm_quintiles(labeled_df)
 clean_df = st.session_state.clean_df
 
 # Customer Selection Controls
@@ -50,7 +53,7 @@ curr_sym = st.session_state.get("currency_symbol", "$")
 
 # Summary Header Card
 with st.container(border=True):
-    h1, h2, h3, h4 = st.columns([1.5, 1, 1, 1])
+    h1, h2, h3, h4, h5 = st.columns([1.5, 1, 1, 1, 1])
     with h1:
         st.markdown(f"### Customer `{selected_id}`")
         color_dot = f"<span style='display:inline-block;width:12px;height:12px;border-radius:50%;background-color:{seg_color};margin-right:6px;'></span>"
@@ -64,10 +67,21 @@ with st.container(border=True):
         st.metric("Total Orders (F)", f"{int(cust_rfm['frequency'])} orders")
     with h4:
         st.metric("Recency (R)", f"{int(cust_rfm['recency'])} days ago")
+    with h5:
+        rfm_score_val = str(cust_rfm.get("rfm_score", "N/A"))
+        rfm_tot_val = cust_rfm.get("rfm_total", "N/A")
+        st.metric(
+            "RFM Quintile",
+            f"{rfm_score_val}",
+            help=f"Traditional 1-5 scores for Recency, Frequency, Monetary. Total Score: {rfm_tot_val}/15",
+        )
 
     first_seen = pd.to_datetime(cust_rfm['first_purchase']).strftime('%Y-%m-%d') if 'first_purchase' in cust_rfm and pd.notna(cust_rfm['first_purchase']) else "N/A"
     last_seen = pd.to_datetime(cust_rfm['last_purchase']).strftime('%Y-%m-%d') if 'last_purchase' in cust_rfm and pd.notna(cust_rfm['last_purchase']) else "N/A"
-    st.caption(f"**First Seen:** {first_seen} | **Last Seen:** {last_seen}")
+    snap_dt = st.session_state.get("snapshot_date")
+    snap_str = snap_dt.strftime("%Y-%m-%d") if hasattr(snap_dt, "strftime") else (str(snap_dt) if snap_dt else None)
+    snap_info = f" | **Observation Snapshot:** {snap_str}" if snap_str else ""
+    st.caption(f"**First Seen:** {first_seen} | **Last Seen:** {last_seen} | **RFM Total:** {rfm_tot_val}/15{snap_info}")
     if persona_meta.get("action"):
         st.info(f"💡 **Recommended Strategy for this Customer:** {persona_meta['action']}")
 

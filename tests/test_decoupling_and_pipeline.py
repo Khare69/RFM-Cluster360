@@ -11,10 +11,8 @@ Verifies that:
 
 from pathlib import Path
 import os
-import shutil
 import numpy as np
 import pandas as pd
-import pytest
 from sklearn.cluster import KMeans
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
@@ -26,19 +24,14 @@ from src.clustering import (
     preprocess_rfm,
     run_kmeans,
 )
-from src.ingestion import load_csv
 from src.model_registry import (
-    load_model_artifact,
     load_pipeline_artifact,
     predict_segment,
     save_model_artifact,
 )
 from src.rfm import calculate_rfm, default_snapshot_date
 from services.segmentation_service import (
-    cached_calculate_rfm,
-    cached_evaluate_clusters,
     cached_load_csv,
-    cached_preprocess_rfm,
     promote_model_to_registry,
 )
 
