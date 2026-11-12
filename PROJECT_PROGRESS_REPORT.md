@@ -41,16 +41,17 @@ Over the course of structured engineering iterations (**Phases 0 through 12 + De
 
 ### Platform Health Metrics at a Glance
 
-| Metric | Day 1 (Phase 0) | Current State (Audit Hardened) |
+| Metric | Day 1 (Phase 0) | Current State (v1.3.0 Release) |
 |---|:---:|:---:|
-| **Automated Unit & Integration Tests** | 0 tests | **87 tests (100% pass rate)** |
-| **Test Suites** | 0 files | **12 test suites** (`tests/test_*.py`) |
-| **Git Commits** | 1 initial commit | **24 semantic commits** |
+| **Automated Unit & Integration Tests** | 0 tests | **98 tests (100% pass rate)** |
+| **Test Suites** | 0 files | **13 test suites** (`tests/test_*.py`) |
+| **Git Commits** | 1 initial commit | **29 semantic commits** |
 | **Code Quality & Linting** | Unchecked | **Ruff (100% pass, 0 errors), Pyright (0 errors)** |
 | **Supported Storage Backends** | Local CSV only | **Local CSV, Apache Parquet, AWS S3, Mock S3** |
-| **Containerization** | None | **Production Multi-stage Docker + Docker Compose + CI Build** |
-| **MLOps Capabilities** | In-memory only | **Unified Pipeline (`pipeline.joblib`), versioned registry, live inference** |
-| **Continuous Integration** | None | **GitHub Actions (Ruff + Pyright + Pytest + Docker Build)** |
+| **Containerization** | None | **Production Multi-stage Docker + Docker Compose + CI Build + GHCR Deploy** |
+| **MLOps Capabilities** | In-memory only | **Unified Pipeline (`pipeline.joblib`), versioned registry, out-of-time backtesting** |
+| **Continuous Integration** | None | **Parallel CI Gates (Lint, Typecheck, Security, Tests, Docker) + CD to GHCR** |
+| **Branch Separation Model** | 1 branch (`main`) | **3 Branches (`main`, `debugging-and-error-correction`, `dev`)** |
 | **Known Security / Traversal Vulnerabilities** | Unaudited | **0 (Strictly mitigated & tested)** |
 
 ---
@@ -191,6 +192,22 @@ Over the course of structured engineering iterations (**Phases 0 through 12 + De
   - Built comprehensive headless Streamlit UI smoke suite [`tests/test_pages_smoke.py`](tests/test_pages_smoke.py) using `streamlit.testing.v1.AppTest`, verifying zero runtime exceptions across all pages in both uninitialized and populated states.
   - Expanded automated test coverage from 75 to 84 tests (100% pass rate in ~25s).
 - **Git Commit:** `3129b64` (*ci: production engineering — ruff, pyright, docker build in CI, quintile baselines, smoke suite (Phase 12)*)
+
+### Phase 13 — Enterprise Git Governance, Parallel CI/CD, Developer Tooling & Out-of-Time Backtesting (Release v1.3.0)
+- **Objective:** Adopt a 3-branch separation model (`main`, `debugging-and-error-correction`, `dev`), parallelize CI quality gates, automate GHCR container deployments, establish repository governance and local task runners, and engineer an empirical Out-of-Time Backtesting & Markov Segment Migration engine.
+- **Deliverables:**
+  - **3-Branch Git Separation:** Enforced `main` as stable production release baseline, `debugging-and-error-correction` for bug fixes and financial hardening, and `dev` for feature engineering and experimental analytics.
+  - **Parallel CI/CD Quality Pipeline:** Modernized [`.github/workflows/ci.yml`](.github/workflows/ci.yml) with 5 parallel Ubuntu 22.04 jobs (`lint`, `typecheck`, `security`, `test`, `docker-build`) plus conditional continuous deployment publishing container images to GitHub Container Registry (`ghcr.io/khare69/rfm-cluster360:v1.3.0` and `:latest`).
+  - **Repository Governance:** Authored [`.github/PULL_REQUEST_TEMPLATE.md`](.github/PULL_REQUEST_TEMPLATE.md), branch-routed issue forms ([`bug_report.yml`](.github/ISSUE_TEMPLATE/bug_report.yml) and [`feature_request.yml`](.github/ISSUE_TEMPLATE/feature_request.yml)), and [`.github/dependabot.yml`](.github/dependabot.yml) monitoring `pip` and `github-actions`.
+  - **Developer Tooling:** Built [`.pre-commit-config.yaml`](.pre-commit-config.yaml), cross-platform [`Makefile`](Makefile), and native Windows PowerShell runner [`scripts/run.ps1`](scripts/run.ps1).
+  - **Out-of-Time Backtesting Engine:** Engineered [`src/backtesting.py`](src/backtesting.py) with zero UI dependencies, [`viz/backtesting_charts.py`](viz/backtesting_charts.py) (Markov transition matrix heatmaps, forward monetization realization charts), and [`pages/7_Segment_Backtesting.py`](pages/7_Segment_Backtesting.py) (interactive cutoff slider, KPI cards, migration drilldowns, and CSV exports).
+  - **Comprehensive Test Growth:** Created [`tests/test_backtesting.py`](tests/test_backtesting.py) and added governance/tooling tests in [`tests/test_ci_config.py`](tests/test_ci_config.py), bringing total automated test coverage to **98 tests with a 100% pass rate**.
+- **Git Commits & Release:**
+  - `cdb950a` (*ci: modernize GitHub Actions pipeline with parallel gates, CD publishing, and 3-branch model*)
+  - `48c7859` (*ci: implement repository governance — PR template, issue forms, and dependabot automation*)
+  - `8c29032` (*ci: implement developer tooling — pre-commit automation, Makefile, and PowerShell task runner*)
+  - `5e6160a` (*feat(backtesting): out-of-time temporal window splitting, Markov transition matrix, and forward monetization*)
+  - Release Tag: `v1.3.0` synced and promoted across `main`, `dev`, and `debugging-and-error-correction`.
 
 ---
 
