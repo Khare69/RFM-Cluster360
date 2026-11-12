@@ -1,0 +1,53 @@
+name: "🐛 Bug & Error Correction Report"
+description: "Report a runtime crash, financial math discrepancy, or data cleaning defect"
+title: "[BUG]: "
+labels: ["bug", "branch:debugging-and-error-correction"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for reporting an issue!
+        Bug fixes and financial precision corrections are developed on the **`debugging-and-error-correction`** branch.
+
+  - type: dropdown
+    id: category
+    attributes:
+      label: Defect Category
+      description: What system domain does this issue impact?
+      options:
+        - "Runtime Crash / Unhandled Exception"
+        - "Financial Math / Return Policy Discrepancy"
+        - "Data Ingestion & Cleaning Sanitization"
+        - "K-Means Clustering & Persona Mislabeling"
+        - "Cloud Storage / S3 / Parquet Serialization"
+        - "Streamlit UI & Theme Rendering"
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Bug Description
+      description: Clear and concise description of what the error is.
+      placeholder: "e.g., When calculating RFM with net returns, negative invoice rows cause..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to Reproduce
+      description: How can we reproduce this behavior?
+      placeholder: |
+        1. Ingest dataset with negative monetary values...
+        2. Set currency to EUR...
+        3. Navigate to Page 2 (RFM Explorer)...
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Error Traceback or Terminal Output
+      description: Paste any error messages or tracebacks here.
+      render: shell

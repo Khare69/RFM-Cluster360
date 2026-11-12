@@ -79,3 +79,35 @@ def test_requirements_split():
     core_packages = ["pandas", "numpy", "scikit-learn", "plotly", "streamlit", "boto3", "pyarrow", "joblib"]
     for pkg in core_packages:
         assert pkg in prod_content, f"Core production package '{pkg}' must be in requirements.txt"
+
+
+def test_repository_governance_and_templates():
+    """Verify Pull Request template, Issue templates, and Dependabot governance configuration."""
+    pr_template_path = REPO_ROOT / ".github/PULL_REQUEST_TEMPLATE.md"
+    bug_issue_path = REPO_ROOT / ".github/ISSUE_TEMPLATE/bug_report.yml"
+    feat_issue_path = REPO_ROOT / ".github/ISSUE_TEMPLATE/feature_request.yml"
+    dependabot_path = REPO_ROOT / ".github/dependabot.yml"
+
+    # PR Template checks
+    assert pr_template_path.exists(), "PULL_REQUEST_TEMPLATE.md must exist in .github/"
+    pr_content = pr_template_path.read_text(encoding="utf-8")
+    assert "`main`" in pr_content, "PR template must include main branch option"
+    assert "`debugging-and-error-correction`" in pr_content, "PR template must include debugging branch option"
+    assert "`dev`" in pr_content, "PR template must include dev branch option"
+    assert "88+ automated tests" in pr_content, "PR template must require test suite pass"
+
+    # Issue Templates checks
+    assert bug_issue_path.exists(), "bug_report.yml must exist in .github/ISSUE_TEMPLATE/"
+    bug_content = bug_issue_path.read_text(encoding="utf-8")
+    assert "debugging-and-error-correction" in bug_content, "Bug report must target debugging branch"
+
+    assert feat_issue_path.exists(), "feature_request.yml must exist in .github/ISSUE_TEMPLATE/"
+    feat_content = feat_issue_path.read_text(encoding="utf-8")
+    assert "dev" in feat_content, "Feature request must target dev branch"
+
+    # Dependabot checks
+    assert dependabot_path.exists(), "dependabot.yml must exist in .github/"
+    dep_content = dependabot_path.read_text(encoding="utf-8")
+    assert 'package-ecosystem: "pip"' in dep_content, "Dependabot must monitor pip dependencies"
+    assert 'package-ecosystem: "github-actions"' in dep_content, "Dependabot must monitor GitHub Actions"
+

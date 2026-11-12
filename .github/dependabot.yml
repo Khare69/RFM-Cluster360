@@ -1,0 +1,32 @@
+# ==============================================================================
+# Dependabot Configuration for RFM Cluster360
+# Automated dependency vulnerability monitoring and version management
+# ==============================================================================
+
+version: 2
+updates:
+  # Monitor production and development Python dependencies
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 10
+    commit-message:
+      prefix: "chore(deps)"
+    target-branch: "dev"
+    labels:
+      - "dependencies"
+      - "branch:dev"
+
+  # Monitor GitHub Actions CI/CD workflows
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "ci(deps)"
+    target-branch: "main"
+    labels:
+      - "ci"
+      - "dependencies"

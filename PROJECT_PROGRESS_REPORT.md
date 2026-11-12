@@ -3,7 +3,7 @@
 > **Project:** RFM Cluster360 — Enterprise Customer Segmentation & MLOps Platform  
 > **Repository:** [`github.com/Khare69/RFM-Cluster360`](https://github.com/Khare69/RFM-Cluster360)  
 > **Report Timestamp:** October 2026  
-> **Current Status:** Phases 0 through 12 Completed + Deep Review Audit & Production Hardening (88 Automated Tests, Parallel CI/CD Quality Gates, GHCR Container Publishing)
+> **Current Status:** Phases 0 through 12 Completed + Deep Review Audit & Production Hardening (89 Automated Tests, Repository Governance & PR Templates, GHCR Publishing)
 
 ---
 
@@ -558,13 +558,14 @@ Phase 11: 75 tests (Architectural decoupling, headless core & unified sklearn pi
 Phase 12: 84 tests (Quintile heuristic baselines, full Streamlit UI AppTest smoke suite, Ruff & Pyright quality gates)
 Audit:     87 tests (Review audit hardening — test path independence, silhouette sampling, formula injection, streaming read limits)
 CI/CD:     88 tests (Parallel CI quality gates, pip-audit vulnerability scanning, pytest coverage summary, GHCR container publishing)
+Governance: 89 tests (Repository governance, PR & Issue templates, Dependabot automated audits)
 ```
 
 ### Test Suite Breakdown
 
 | Suite File | Tests | Focus Areas |
 |---|:---:|---|
-| [`tests/test_ci_config.py`](tests/test_ci_config.py) | **3** | GitHub Actions workflow YAML parsing, requirements decoupling, parallel gates, GHCR publishing, pip-audit security audit & coverage |
+| [`tests/test_ci_config.py`](tests/test_ci_config.py) | **4** | GitHub Actions workflow YAML parsing, requirements decoupling, parallel gates, GHCR publishing, pip-audit security audit & repository governance |
 | [`tests/test_cleaning.py`](tests/test_cleaning.py) | **12** | Accounting negatives, string-float normalization, leading zeros, null invoices, net returns policy, currency export, CSV formula injection defense |
 | [`tests/test_cloud_storage.py`](tests/test_cloud_storage.py) | **13** | S3 mock load/upload, path traversal prevention, 50MB size limit, streaming read byte bounds, Parquet roundtrip |
 | [`tests/test_clustering.py`](tests/test_clustering.py) | **6** | Optimal $k$ evaluation, silhouette scoring, low-variance input interception, pre-scaling variance guard, large-dataset subsampling |

@@ -1,0 +1,41 @@
+name: "✨ Feature Request & Analytical Proposal"
+description: "Suggest a new analytics feature, UI enhancement, or backtesting capability"
+title: "[FEAT]: "
+labels: ["enhancement", "branch:dev"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for suggesting an improvement!
+        New feature development, UI upgrades, and backtesting capabilities are engineered on the **`dev`** branch.
+
+  - type: dropdown
+    id: feature_domain
+    attributes:
+      label: Feature Domain
+      description: Where does this feature belong?
+      options:
+        - "Out-of-Time Backtesting & Migration Analysis"
+        - "Machine Learning & Clustering Innovations"
+        - "Streamlit UI/UX & Visualization Enhancements"
+        - "Cloud Infrastructure & Big Data Ingestion"
+        - "MLOps Model Registry & Version Tracking"
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or Business Need
+      description: What challenge does this feature solve?
+      placeholder: "e.g., Marketing teams need to track how customer personas migrate between Q1 and Q2..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposed_solution
+    attributes:
+      label: Proposed Solution & Analytical Approach
+      description: Describe your proposed design, equations, or visual charts.
+    validations:
+      required: true
