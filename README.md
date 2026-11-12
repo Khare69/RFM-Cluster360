@@ -72,6 +72,7 @@ An enterprise-ready customer intelligence and segmentation platform that transfo
    - **🗺️ 3D Cluster Map**: Fully rotatable 3D customer space with zoom, pan, and 2D cross-section projections.
    - **👤 Customer Search**: Look up individual accounts, RFM quintile score, benchmark rankings across the base, and purchase timelines.
    - **📈 Cohort Retention**: Monthly acquisition cohort retention heatmap with contiguous period reindexing and adaptive high-contrast font colors.
+   - **⏳ Segment Backtesting**: Out-of-time temporal window validation ($T_1 \le \text{cutoff} < T_2$), Markov segment transition probability heatmaps, customer churn tracking, and forward revenue realization analysis.
    - **🤖 Model Registry**: MLOps artifact catalog to browse versions, compare silhouette scores/inertia curves, hot-swap deployed estimators, and run live customer inference.
 
 9. **Blazing-Fast Reactive Performance**
@@ -226,6 +227,7 @@ rfm-cluster360/
 │   ├── clustering.py               # Log transforms, scaling, K-Means, silhouette evaluation, variance guard
 │   ├── personas.py                 # Composite score ranking, collision-free persona classification
 │   ├── cohort.py                   # Monthly acquisition cohort retention matrix with contiguous reindexing
+│   ├── backtesting.py              # Temporal window splitting, Markov transition matrix, forward realization
 │   ├── model_registry.py           # MLOps serialization, version listing, loading, and live inference
 │   └── export.py                   # Clean CSV & Apache Parquet (pyarrow) serialization
 │
@@ -235,7 +237,8 @@ rfm-cluster360/
 │   ├── 3_Cluster_Map.py            # 3D interactive customer space & 2D slices
 │   ├── 4_Customer_Search.py        # Customer lookup, timeline, and percentile rankings
 │   ├── 5_Cohort_Retention.py       # Acquisition cohort retention heatmaps
-│   └── 6_Model_Registry.py         # MLOps versioning, model benchmarking, and live inference
+│   ├── 6_Model_Registry.py         # MLOps versioning, model benchmarking, and live inference
+│   └── 7_Segment_Backtesting.py    # Temporal backtesting, transition heatmaps, and forward validation
 │
 ├── components/                     # Reusable Streamlit UI widgets
 │   ├── metric_cards.py             # Executive KPI metrics & persona cards
@@ -248,9 +251,10 @@ rfm-cluster360/
 │   ├── rfm_charts.py               # Histograms, elbow curve, silhouette curve, radar charts
 │   ├── cluster_scatter.py          # 3D scatter & 2D pairwise projections
 │   ├── customer_timeline.py        # Individual customer timeline & percentile ranking
-│   └── cohort_heatmap.py           # Annotated cohort retention heatmap with adaptive text contrast
+│   ├── cohort_heatmap.py           # Annotated cohort retention heatmap with adaptive text contrast
+│   └── backtesting_charts.py       # Markov transition heatmaps and forward monetization charts
 │
-└── tests/                          # Automated Pytest Suite (59 Passed)
+└── tests/                          # Automated Pytest Suite (98 Passed)
     ├── conftest.py                 # Hand-calculated transaction fixtures & synthetic base
     ├── test_ci_config.py           # GitHub Actions workflow syntax & requirements split verification
     ├── test_ingestion.py           # Encodings, empty files, fuzzy mapping, duplicate detection, StringIO
@@ -260,6 +264,7 @@ rfm-cluster360/
     ├── test_clustering.py          # Preprocessing, evaluation, profiles, low-variance guard
     ├── test_personas.py            # Centroid labeling, synthetic customer groups, k=10 collision handling
     ├── test_cohort.py              # Cohort retention calculations, KPIs, non-contiguous month reindexing
+    ├── test_backtesting.py         # Temporal window slicing, transition probabilities, forward realization
     ├── test_docker_config.py       # Multi-stage Dockerfile, docker-compose syntax, and .dockerignore rules
     └── test_model_registry.py      # Artifact save/load roundtrips, version listing, deletion, live inference
 ```
