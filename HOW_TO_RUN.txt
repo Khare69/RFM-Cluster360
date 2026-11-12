@@ -81,7 +81,7 @@ HOW TO USE THE WEBSITE (FEATURES ONCE OPEN)
 
 1. Load Data:
    - "📁 Upload Your CSV": Upload your own retail transaction export.
-   - "🧪 Try Sample Dataset": Click "Load Sample Retail Dataset" (~1,200 demo rows).
+   - "🧪 Try Sample Dataset": Click "Load Sample Retail Dataset" (2,211 demo rows across 120 customers).
    - "☁️ Load from S3 Bucket": Ingest directly from AWS S3 or the built-in offline 
      mock storage (Bucket: 'retail-data', Key: 'transactions.csv' or 'transactions.parquet').
 
@@ -118,7 +118,7 @@ The containerized app will be available at:
 RUNNING THE AUTOMATED TESTS
 --------------------------------------------------------------------------------
 
-To run the complete 53-test automated unit test suite:
+To run the complete automated test suite (unit, integration, smoke):
     pytest -v
     or
     .\.venv\Scripts\pytest -v

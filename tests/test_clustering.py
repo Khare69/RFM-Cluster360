@@ -84,3 +84,14 @@ def test_preprocess_rfm_preserves_pre_scale_low_variance():
     eval_results = evaluate_clusters(scaled_data)
     assert eval_results.get("is_low_variance") is True
 
+
+def test_evaluate_clusters_sample_size_for_large_datasets():
+    """Verify that evaluate_clusters efficiently computes silhouette on a sample for large N (>2000)."""
+    np.random.seed(42)
+    large_data = np.random.randn(2500, 3)
+    eval_results = evaluate_clusters(large_data, k_range=range(2, 4))
+    assert eval_results["best_k"] in [2, 3]
+    assert len(eval_results["silhouette_scores"]) == 2
+    assert all(isinstance(s, float) for s in eval_results["silhouette_scores"])
+
+

@@ -113,8 +113,21 @@ with tab_ml:
 
         best_k = eval_metrics["best_k"]
         best_score = eval_metrics["best_silhouette"]
-        st.success(
-            f"🤖 **Auto-Recommendation:** $k={best_k}$ achieved the highest silhouette score of **{best_score:.3f}**, indicating strong separation between customer groups."
+        if best_score >= 0.50:
+            sep_qual = "strong separation between customer groups"
+            badge_fn = st.success
+        elif best_score >= 0.35:
+            sep_qual = "moderate separation with identifiable customer patterns"
+            badge_fn = st.info
+        elif best_score >= 0.20:
+            sep_qual = "weak separation (customer data exhibits continuous rather than discrete groupings)"
+            badge_fn = st.warning
+        else:
+            sep_qual = "poor separation (clusters exhibit substantial overlap)"
+            badge_fn = st.warning
+
+        badge_fn(
+            f"🤖 **Auto-Recommendation:** $k={best_k}$ achieved the highest silhouette score of **{best_score:.3f}**, indicating {sep_qual}."
         )
 
 with tab_dna:

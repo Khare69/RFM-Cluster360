@@ -127,4 +127,5 @@ def render_cleaning_report_card(
             st.dataframe(breakdown_df, use_container_width=True, hide_index=True)
 
             if report.duplicate_rows_detected > 0:
-                st.caption(f"ℹ️ Found **{report.duplicate_rows_detected}** exact duplicate rows in the dataset.")
+                redundant_copies = report.duplicate_rows_detected // 2 if report.duplicate_rows_detected >= 2 else report.duplicate_rows_detected
+                st.caption(f"ℹ️ Found **{report.duplicate_rows_detected}** duplicate-group rows (**{redundant_copies}** redundant copies) in the dataset.")

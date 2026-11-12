@@ -4,10 +4,12 @@ Unit tests validating Docker configuration, multi-stage Dockerfile syntax, and c
 
 from pathlib import Path
 
+REPO_ROOT = Path(__file__).resolve().parent.parent
+
 
 def test_dockerfile_structure():
     """Verify Dockerfile exists and enforces multi-stage security and healthcheck best practices."""
-    dockerfile_path = Path("Dockerfile")
+    dockerfile_path = REPO_ROOT / "Dockerfile"
     assert dockerfile_path.exists(), "Dockerfile must exist at repository root"
 
     content = dockerfile_path.read_text(encoding="utf-8")
@@ -29,7 +31,7 @@ def test_dockerfile_structure():
 
 def test_docker_compose_structure():
     """Verify docker-compose.yml exists, defines app service, port mappings, and volume mounts."""
-    compose_path = Path("docker-compose.yml")
+    compose_path = REPO_ROOT / "docker-compose.yml"
     assert compose_path.exists(), "docker-compose.yml must exist at repository root"
 
     content = compose_path.read_text(encoding="utf-8")
@@ -43,7 +45,7 @@ def test_docker_compose_structure():
 
 def test_dockerignore_rules():
     """Verify .dockerignore excludes sensitive and unnecessary local artifacts."""
-    dockerignore_path = Path(".dockerignore")
+    dockerignore_path = REPO_ROOT / ".dockerignore"
     assert dockerignore_path.exists(), ".dockerignore must exist at repository root"
 
     content = dockerignore_path.read_text(encoding="utf-8")

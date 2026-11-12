@@ -195,7 +195,9 @@ def load_from_s3(
             content_length = response.get("ContentLength")
             if content_length is not None and content_length > max_bytes:
                 return None, f"File exceeds maximum allowed size of {max_size_mb} MB."
-            data_bytes = response["Body"].read()
+            data_bytes = response["Body"].read(max_bytes + 1)
+            if len(data_bytes) > max_bytes:
+                return None, f"File exceeds maximum allowed size of {max_size_mb} MB."
         except NoCredentialsError:
             # Fall back to local mock storage if file exists on disk
             try:

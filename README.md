@@ -9,7 +9,7 @@
 [![Apache Parquet](https://img.shields.io/badge/Format-Apache%20Parquet-teal.svg)](https://parquet.apache.org/)
 [![Docker](https://img.shields.io/badge/Docker-Containerized-2496ED.svg?logo=docker&logoColor=white)](Dockerfile)
 [![MLOps](https://img.shields.io/badge/MLOps-Model%20Registry-blueviolet.svg)](#-mlops-model-artifact-registry)
-[![Tests](https://img.shields.io/badge/Tests-84%20Passed-brightgreen.svg)](#-running-the-test-suite)
+[![Tests](https://img.shields.io/badge/Tests-87%20Passed-brightgreen.svg)](#-running-the-test-suite)
 [![Report](https://img.shields.io/badge/Report-Project%20Progress%20%26%20Bugs-informational.svg)](PROJECT_PROGRESS_REPORT.md)
 [![License](https://img.shields.io/badge/License-Apache_2.0-green.svg)](LICENSE)
 
@@ -97,7 +97,7 @@ An enterprise-ready customer intelligence and segmentation platform that transfo
 13. **Continuous Integration & Automated Testing Pipeline (GitHub Actions)**
     - **Automated CI Workflow:** Executes on every `push` and `pull_request` targeting `main`.
     - **Dependency Decoupling:** Production runtime requirements (`requirements.txt`) are separated from development/test packages (`requirements-dev.txt`), keeping production container images lean and CI runs fast.
-    - **Full Test Automation:** Runs all 84 unit and integration tests across data ingestion, cleaning, RFM logic, clustering, cohort analysis, Docker configuration, MLOps registry, decoupling, smoke tests, and CI configuration.
+    - **Full Test Automation:** Runs all 87 unit and integration tests across data ingestion, cleaning, RFM logic, clustering, cohort analysis, Docker configuration, MLOps registry, decoupling, smoke tests, and CI configuration.
 
 14. **Architectural Decoupling & Unified Pipeline Artifacts**
     - **Headless Core Analytics:** Core modules under `src/` contain zero UI or Streamlit dependencies, enabling headless execution from CLI scripts, Airflow workflows, or backend microservices.
@@ -288,27 +288,59 @@ rfm-cluster360/
 
 ## 🔄 Continuous Integration & Deployment (CI/CD)
 
-RFM Cluster360 implements an enterprise CI/CD workflow via **GitHub Actions** (`.github/workflows/ci.yml`) to guarantee regression-free releases, automated testing, and clean dependency management.
+RFM Cluster360 implements an enterprise-grade CI/CD pipeline via **GitHub Actions** (`.github/workflows/ci.yml`) providing parallel quality gates, automated security auditing, test coverage reporting, container build verification, and automated CD container registry publishing.
+
+### 🌿 Git Branching Strategy (3-Branch Separation Model)
+
+The repository follows an enterprise 3-branch separation model ensuring stability, clean release isolation, and rigorous review gates:
+
+| Branch | Purpose & Scope | Promotion Rules & CI Gates |
+|---|---|---|
+| **`main`** | **Stable Production / Release Baseline:** Always deployable, immutable production code. | Protected baseline. Merges only via peer-reviewed Pull Requests with 100% CI pass rate. Triggers automated Docker image publishing to GitHub Container Registry (GHCR). |
+| **`debugging-and-error-correction`** | **Bug Fixes & Financial Hardening:** Dedicated branch for numerical precision, financial math corrections, data cleaning hygiene, and runtime crash remedies. | Isolated from experimental features. Once validated by the 88-test suite, merged into `main` and synced back to `dev`. |
+| **`dev`** | **Feature Engineering & Backtesting:** Active development branch for new analytics features, UI/UX enhancements, cohort tools, and model backtesting engines. | Aggregates work-in-progress features. Periodically rebased/merged with `main` to maintain regression-free alignment. |
+
+```mermaid
+gitGraph
+  commit id: "main-v1.0"
+  branch debugging-and-error-correction
+  branch dev
+  checkout debugging-and-error-correction
+  commit id: "fix: return-policy"
+  commit id: "fix: accounting-parens"
+  checkout main
+  merge debugging-and-error-correction id: "merge: hotfix-v1.0.1" tag: "v1.0.1"
+  checkout dev
+  commit id: "feat: model-registry"
+  commit id: "feat: cohort-backtest"
+  merge main id: "sync: main into dev"
+  checkout main
+  merge dev id: "merge: release-v1.1" tag: "v1.1.0"
+```
 
 ### 🛠️ Workflow Architecture & Triggers
 
-- **Triggers:** Automatically triggered on every `push` and `pull_request` targeting the `main` branch.
-- **Concurrency Control:** Cancels obsolete in-flight runs when newer commits are pushed (`concurrency: cancel-in-progress: true`).
-- **Runner Environment:** Isolated `ubuntu-latest` running **Python 3.11**.
-- **Execution Lifecycle:**
-  1. **Source Checkout:** Fetches the repo using `actions/checkout@v4`.
-  2. **Python Setup & Caching:** Provisions Python 3.11 with automatic pip caching using `actions/setup-python@v5`.
-  3. **Layered Dependency Installation:** Installs production libraries from `requirements.txt` followed by testing utilities from `requirements-dev.txt`.
-  4. **Automated Test Suite:** Executes all 50 automated tests with short tracebacks (`pytest -v --tb=short`).
+- **Triggers:**
+  - `push` targeting `main`, `dev`, or `debugging-and-error-correction` (triggers full CI quality gates; `main` additionally executes CD to GHCR).
+  - `pull_request` targeting `main`, `dev`, or `debugging-and-error-correction` (triggers full parallel CI quality gates).
+  - `workflow_dispatch` (enables manual one-click workflow triggers directly from GitHub Actions UI).
+- **Concurrency Control:** Cancels obsolete in-flight runs when newer commits are pushed to pull requests (`cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}`).
+- **Parallel Quality Gates (Fast-Feedback Architecture):**
+  1. **Linting & Code Quality (`lint`):** Executes `ruff check .` for lightning-fast PEP 8 linting and code hygiene.
+  2. **Static Type Validation (`typecheck`):** Executes `pyright` for deep type consistency verification across all modules.
+  3. **Security & Vulnerability Audit (`security`):** Scans production dependencies against known advisory databases using `pip-audit`.
+  4. **Automated Test Suite & Coverage (`test`):** Runs the full 88-test Pytest suite with `--cov`, generates a rich markdown report in `$GITHUB_STEP_SUMMARY`, and uploads `coverage.xml` as a build artifact.
+  5. **Container Verification (`docker-build`):** Validates multi-stage Docker compilation using `docker/setup-buildx-action` with GitHub Actions cache (`type=gha`).
+  6. **Continuous Deployment (`publish`):** Upon successful completion of all quality gates on `main`, automatically builds, tags (`latest`, `sha-<short>`), and publishes the production image to **GitHub Container Registry** (`ghcr.io/khare69/rfm-cluster360`).
 
 ### 📦 Decoupled Dependency Architecture
 
-To avoid bloat in the production Docker image while maintaining comprehensive testing tools, project requirements are strictly decoupled:
+To avoid bloat in the production Docker image while maintaining comprehensive testing and developer tooling, project requirements are strictly decoupled:
 
 | Requirement Manifest | Purpose | Included Packages |
 |---|---|---|
 | `requirements.txt` | Production runtime & Docker build | `streamlit`, `pandas`, `numpy`, `scikit-learn`, `plotly`, `python-dotenv`, `boto3`, `pyarrow`, `joblib` |
-| `requirements-dev.txt` | CI/CD testing & local development | `pytest`, `moto` |
+| `requirements-dev.txt` | CI/CD testing, security audit & local development | `pytest`, `pytest-cov`, `moto`, `ruff`, `pyright`, `pip-audit` |
 
 ---
 

@@ -8,10 +8,35 @@ from typing import List, Optional
 import pandas as pd
 
 
+def sanitize_formula_injection(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Sanitizes string and object columns against CSV formula injection (CSV injection / DDE).
+    Prepends a single quote "'" to cells starting with '=', '+', '-', '@', '\t', or '\r'.
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        DataFrame to sanitize.
+
+    Returns
+    -------
+    pd.DataFrame
+        Sanitized DataFrame with escaped formula trigger characters.
+    """
+    sanitized = df.copy()
+    str_cols = sanitized.select_dtypes(include=["object", "string"]).columns
+    for col in str_cols:
+        sanitized[col] = sanitized[col].apply(
+            lambda x: f"'{x}" if isinstance(x, str) and len(x) > 0 and x[0] in ("=", "+", "-", "@", "\t", "\r") else x
+        )
+    return sanitized
+
+
 def prepare_export_dataframe(
     labeled_df: pd.DataFrame,
     include_dates: bool = True,
     currency_symbol: str = "$",
+    sanitize_formulas: bool = True,
 ) -> pd.DataFrame:
     """
     Standardizes column names and formats for external export.
@@ -24,6 +49,8 @@ def prepare_export_dataframe(
         Whether to keep first/last purchase timestamps.
     currency_symbol : str, default "$"
         Currency symbol to embed in the monetary header.
+    sanitize_formulas : bool, default True
+        Whether to sanitize formula triggers in string columns against CSV injection.
 
     Returns
     -------
@@ -56,12 +83,15 @@ def prepare_export_dataframe(
         cols_to_keep = [c for c in cols_to_keep if c not in ["first_purchase", "last_purchase"]]
 
     export_df = export_df[cols_to_keep].rename(columns=rename_map)
+    if sanitize_formulas:
+        export_df = sanitize_formula_injection(export_df)
     return export_df
 
 
 def to_csv_bytes(
     df: pd.DataFrame,
     columns: Optional[List[str]] = None,
+    sanitize_formulas: bool = True,
 ) -> bytes:
     """
     Serializes a DataFrame into UTF-8 encoded CSV bytes.
@@ -72,6 +102,8 @@ def to_csv_bytes(
         DataFrame to export.
     columns : list of str, optional
         Specific column subset to include.
+    sanitize_formulas : bool, default True
+        Whether to escape potential formula injection triggers in string cells.
 
     Returns
     -------
@@ -79,6 +111,8 @@ def to_csv_bytes(
         UTF-8 encoded CSV string as bytes.
     """
     export_df = df[columns] if columns is not None else df
+    if sanitize_formulas:
+        export_df = sanitize_formula_injection(export_df)
     return export_df.to_csv(index=False).encode("utf-8")
 
 

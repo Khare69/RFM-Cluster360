@@ -272,5 +272,32 @@ def test_export_dataframe_with_custom_currency():
     assert "Monetary ($)" not in export_inr.columns
 
 
+def test_export_dataframe_formula_injection_protection():
+    """Verify that CSV export escapes formula injection triggers (=, +, -, @) in string columns."""
+    from src.export import prepare_export_dataframe, to_csv_bytes
+
+    dangerous_df = pd.DataFrame([
+        {
+            "customer_id": "=SUM(1,1)",
+            "recency": 5,
+            "frequency": 1,
+            "monetary": 50.0,
+            "cluster": 0,
+            "segment": "@AdminPersona",
+            "country": "+United States",
+        }
+    ])
+
+    exported = prepare_export_dataframe(dangerous_df)
+    assert exported["Customer ID"].iloc[0] == "'=SUM(1,1)"
+    assert exported["Customer Segment"].iloc[0] == "'@AdminPersona"
+    assert exported["Country"].iloc[0] == "'+United States"
+
+    csv_data = to_csv_bytes(exported).decode("utf-8")
+    assert "'=SUM(1,1)" in csv_data
+    assert "'@AdminPersona" in csv_data
+
+
+
 
 

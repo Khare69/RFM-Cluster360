@@ -130,7 +130,15 @@ def evaluate_clusters(
         # Silhouette score requires at least 2 distinct clusters
         try:
             if len(np.unique(labels)) > 1:
-                sil = float(silhouette_score(scaled_data, labels))
+                sample_sz = 2000 if n_samples > 2000 else None
+                sil = float(
+                    silhouette_score(
+                        scaled_data,
+                        labels,
+                        sample_size=sample_sz,
+                        random_state=random_state,
+                    )
+                )
             else:
                 sil = 0.0
         except Exception:

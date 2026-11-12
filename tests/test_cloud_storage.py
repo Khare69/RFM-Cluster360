@@ -321,3 +321,30 @@ def test_load_from_s3_mock_size_limit(sample_rfm_df, tmp_path, monkeypatch):
     assert err is not None
     assert "exceeds maximum allowed size" in err.lower()
 
+
+@mock_aws
+def test_load_from_s3_streaming_size_limit(sample_rfm_df):
+    """Verifies load_from_s3 rejects S3 objects exceeding max_size_mb during streaming read."""
+    bucket_name = "test-limit-datalake"
+    object_key = "large_dataset.csv"
+    region = "us-east-1"
+
+    s3 = boto3.client("s3", region_name=region)
+    s3.create_bucket(Bucket=bucket_name)
+
+    large_payload = b"col1,col2\n" + (b"123,456\n" * 250)
+    s3.put_object(Bucket=bucket_name, Key=object_key, Body=large_payload)
+
+    df, err = load_from_s3(
+        bucket=bucket_name,
+        key=object_key,
+        region_name=region,
+        aws_access_key_id="test",
+        aws_secret_access_key="test",
+        max_size_mb=0,
+    )
+    assert df is None
+    assert err is not None
+    assert "exceeds maximum allowed size" in err.lower()
+
+

@@ -248,7 +248,7 @@ def main():
         with tab_sample:
             st.markdown(
                 "Don't have a transaction export ready? "
-                "Explore with our curated **Retail E-Commerce Sample Dataset** (~1,200 transactions across 120 customers with realistic order patterns, returns, and guest checkouts)."
+                "Explore with our curated **Retail E-Commerce Sample Dataset** (2,211 transactions across 120 customers with realistic order patterns, returns, and guest checkouts)."
             )
             if st.button("🚀 Load Sample Retail Dataset", type="primary"):
                 sample_path = os.path.join(os.path.dirname(__file__), "data", "sample_retail.csv")
