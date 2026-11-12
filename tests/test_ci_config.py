@@ -71,7 +71,7 @@ def test_requirements_split():
     dev_content = dev_req_path.read_text(encoding="utf-8")
 
     # Test & dev quality dependencies must NOT be in production requirements
-    for dev_tool in ["pytest", "moto", "ruff", "pyright", "pytest-cov", "pip-audit"]:
+    for dev_tool in ["pytest", "moto", "ruff", "pyright", "pytest-cov", "pip-audit", "pre-commit"]:
         assert dev_tool not in prod_content, f"{dev_tool} must not be listed in production requirements.txt"
         assert dev_tool in dev_content, f"{dev_tool} must be listed in requirements-dev.txt"
 
@@ -110,4 +110,31 @@ def test_repository_governance_and_templates():
     dep_content = dependabot_path.read_text(encoding="utf-8")
     assert 'package-ecosystem: "pip"' in dep_content, "Dependabot must monitor pip dependencies"
     assert 'package-ecosystem: "github-actions"' in dep_content, "Dependabot must monitor GitHub Actions"
+
+
+def test_developer_tooling_and_task_runners():
+    """Verify pre-commit hooks configuration, Makefile targets, and PowerShell task runner."""
+    pre_commit_path = REPO_ROOT / ".pre-commit-config.yaml"
+    makefile_path = REPO_ROOT / "Makefile"
+    ps_runner_path = REPO_ROOT / "scripts/run.ps1"
+
+    # Pre-commit configuration verification
+    assert pre_commit_path.exists(), ".pre-commit-config.yaml must exist at repository root"
+    pre_content = pre_commit_path.read_text(encoding="utf-8")
+    assert "trailing-whitespace" in pre_content, "Pre-commit must configure whitespace checking"
+    assert "check-yaml" in pre_content, "Pre-commit must configure YAML validation"
+    assert "ruff" in pre_content, "Pre-commit must configure Ruff hooks"
+
+    # Makefile verification
+    assert makefile_path.exists(), "Makefile must exist at repository root"
+    make_content = makefile_path.read_text(encoding="utf-8")
+    for target in ["test:", "lint:", "typecheck:", "run:", "docker-build:", "clean:"]:
+        assert target in make_content, f"Makefile must define '{target}' target"
+
+    # PowerShell task runner verification
+    assert ps_runner_path.exists(), "scripts/run.ps1 must exist"
+    ps_content = ps_runner_path.read_text(encoding="utf-8")
+    for cmd in ["test", "lint", "typecheck", "run", "docker-build"]:
+        assert cmd in ps_content, f"PowerShell runner must handle '{cmd}' command"
+
 

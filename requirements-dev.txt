@@ -8,3 +8,4 @@ moto>=4.2.0
 ruff>=0.1.0
 pyright>=1.1.300
 pip-audit>=2.6.0
+pre-commit>=3.5.0

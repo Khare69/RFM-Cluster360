@@ -1,0 +1,24 @@
+# ==============================================================================
+# Pre-Commit Configuration for RFM Cluster360
+# Enforces automated local code formatting, linting, and sanity checks
+# ==============================================================================
+
+repos:
+  # General file hygiene and syntax validation
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-json
+      - id: check-added-large-files
+        args: ["--maxkb=1000"]
+      - id: check-merge-conflict
+
+  # Lightning-fast Python linting via Ruff
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.6.9
+    hooks:
+      - id: ruff
+        args: ["--fix"]
