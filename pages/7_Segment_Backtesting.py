@@ -16,14 +16,68 @@ from viz.backtesting_charts import (
 
 st.set_page_config(page_title="Segment Backtesting | RFM Cluster360", page_icon="⏳", layout="wide")
 
-# Guard clause
-if "cleaned_df" not in st.session_state or st.session_state.cleaned_df is None:
-    st.warning("⚠️ No dataset loaded. Please go to the **Home** page to upload a CSV or load the sample data.")
-    if st.button("⬅️ Return to Home"):
-        st.switch_page("app.py")
-    st.stop()
+# Guard clause: check for cleaned transaction DataFrame (clean_df or cleaned_df)
+raw_df = st.session_state.get("clean_df")
+if raw_df is None:
+    raw_df = st.session_state.get("cleaned_df")
 
-raw_df = st.session_state.cleaned_df
+if raw_df is None:
+    # Check if raw or temp data was loaded on the Home page but pipeline hasn't been executed
+    raw_candidate = st.session_state.get("raw_df") or st.session_state.get("temp_raw_df")
+    if raw_candidate is not None:
+        st.info("ℹ️ A dataset was loaded on the Home page, but the segmentation pipeline has not been executed yet.")
+        c1, c2 = st.columns([1, 1])
+        with c1:
+            if st.button("⚡ Process Loaded Transactions for Backtesting", type="primary"):
+                from src.cleaning import CleaningPolicy, clean_transactions
+                from src.ingestion import auto_map_columns
+
+                mapping = auto_map_columns(raw_candidate)
+                with st.spinner("Processing transaction records..."):
+                    cleaned, _ = clean_transactions(raw_candidate, mapping, policy=CleaningPolicy(policy_type="gross"))
+                    st.session_state.clean_df = cleaned
+                    st.session_state.cleaned_df = cleaned
+                    st.rerun()
+        with c2:
+            if st.button("⬅️ Return to Home"):
+                st.switch_page("app.py")
+        st.stop()
+    else:
+        st.warning(
+            "⚠️ No dataset loaded. Please go to the **Home** page to upload a CSV and run the segmentation pipeline, "
+            "or load the sample dataset directly below."
+        )
+        col_btn1, col_btn2 = st.columns([1, 1])
+        with col_btn1:
+            if st.button("⬅️ Return to Home"):
+                st.switch_page("app.py")
+        with col_btn2:
+            if st.button("🚀 Load Sample Dataset Directly", type="primary"):
+                import os
+                from services.segmentation_service import cached_load_csv
+                from src.cleaning import CleaningPolicy, clean_transactions
+                from src.ingestion import auto_map_columns
+
+                sample_path = os.path.join(os.path.dirname(__file__), "..", "data", "sample_retail.csv")
+                if not os.path.exists(sample_path):
+                    sample_path = os.path.join("data", "sample_retail.csv")
+                if os.path.exists(sample_path):
+                    with st.spinner("Loading and processing sample retail dataset..."):
+                        df_parsed, err = cached_load_csv(sample_path)
+                        if not err and df_parsed is not None:
+                            mapping = auto_map_columns(df_parsed)
+                            cleaned, _ = clean_transactions(
+                                df_parsed, mapping, policy=CleaningPolicy(policy_type="gross")
+                            )
+                            st.session_state.raw_df = df_parsed
+                            st.session_state.temp_raw_df = df_parsed
+                            st.session_state.clean_df = cleaned
+                            st.session_state.cleaned_df = cleaned
+                            st.session_state.is_sample_data = True
+                            st.rerun()
+                else:
+                    st.error("Sample dataset file not found at data/sample_retail.csv")
+        st.stop()
 currency_symbol = st.session_state.get("currency_symbol", DEFAULT_CURRENCY_SYMBOL)
 
 st.title("⏳ Out-of-Time Segment Backtesting & Migration")

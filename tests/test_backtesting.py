@@ -211,7 +211,7 @@ def test_page_7_backtesting_apptest_smoke(sample_temporal_transactions):
     assert not at_empty.exception, f"Page 7 empty state raised exception: {at_empty.exception}"
     assert len(at_empty.warning) > 0, "Page 7 must display a warning when session state is uninitialized"
 
-    # 2. Populated state
+    # 2. Populated state with cleaned_df
     at_populated = AppTest.from_file(str(page_path))
     at_populated.session_state["cleaned_df"] = sample_temporal_transactions
     at_populated.session_state["currency_symbol"] = "$"
@@ -220,3 +220,13 @@ def test_page_7_backtesting_apptest_smoke(sample_temporal_transactions):
 
     assert not at_populated.exception, f"Page 7 populated state raised exception: {at_populated.exception}"
     assert len(at_populated.metric) >= 4, "Page 7 must display 4 summary KPI metric cards"
+
+    # 3. Populated state with clean_df (app.py standard key)
+    at_clean_df = AppTest.from_file(str(page_path))
+    at_clean_df.session_state["clean_df"] = sample_temporal_transactions
+    at_clean_df.session_state["currency_symbol"] = "$"
+    at_clean_df.session_state["k"] = 3
+    at_clean_df.run()
+
+    assert not at_clean_df.exception, f"Page 7 clean_df state raised exception: {at_clean_df.exception}"
+    assert len(at_clean_df.metric) >= 4, "Page 7 must display 4 summary KPI metric cards when clean_df is provided"

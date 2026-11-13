@@ -48,6 +48,7 @@ def init_session_state():
     defaults = {
         "raw_df": None,
         "clean_df": None,
+        "cleaned_df": None,
         "cleaning_report": None,
         "rfm_df": None,
         "clustered_df": None,
@@ -132,6 +133,7 @@ def run_pipeline(
     # Persist in session state
     st.session_state.raw_df = raw_df
     st.session_state.clean_df = clean_df
+    st.session_state.cleaned_df = clean_df
     st.session_state.cleaning_report = report
     st.session_state.rfm_df = rfm_df
     st.session_state.clustered_df = clustered_df
