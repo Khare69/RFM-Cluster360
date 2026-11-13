@@ -2,15 +2,15 @@
 
 > **Project:** RFM Cluster360 — Enterprise Customer Segmentation & MLOps Platform  
 > **Repository:** [`github.com/Khare69/RFM-Cluster360`](https://github.com/Khare69/RFM-Cluster360)  
-> **Report Timestamp:** October 2026  
-> **Current Status:** Phases 0 through 12 Completed + Deep Review Audit & Production Hardening (98 Automated Tests, Out-of-Time Backtesting, 3-Branch Model)
+> **Report Timestamp:** November 2026  
+> **Current Status:** Phases 0 through 16 Completed (117 Automated Tests, BG/NBD + Gamma-Gamma CLV, Hungarian Centroid Matching, Two-Pass Net Reconciliation, GDPR Unlearning)
 
 ---
 
 ## Table of Contents
 
 1. [Executive Summary & High-Level Milestones](#1-executive-summary--high-level-milestones)
-2. [Chronological Project Evolution (Phases 0–12 + Hardening)](#2-chronological-project-evolution-phases-012--hardening)
+2. [Chronological Project Evolution (Phases 0–16 + Hardening)](#2-chronological-project-evolution-phases-016--hardening)
 3. [Comprehensive Bug, Error & Vulnerability Catalog](#3-comprehensive-bug-error--vulnerability-catalog)
    - [3.1 Critical Runtime Crashes & Unhandled Exceptions](#31-critical-runtime-crashes--unhandled-exceptions)
    - [3.2 Silent Data Corruption & Ingestion Flaws](#32-silent-data-corruption--ingestion-flaws)
@@ -41,15 +41,15 @@ Over the course of structured engineering iterations (**Phases 0 through 12 + De
 
 ### Platform Health Metrics at a Glance
 
-| Metric | Day 1 (Phase 0) | Current State (v1.3.0 Release) |
+| Metric | Day 1 (Phase 0) | Current State (Phase 16 Complete) |
 |---|:---:|:---:|
-| **Automated Unit & Integration Tests** | 0 tests | **98 tests (100% pass rate)** |
-| **Test Suites** | 0 files | **13 test suites** (`tests/test_*.py`) |
-| **Git Commits** | 1 initial commit | **29 semantic commits** |
+| **Automated Unit & Integration Tests** | 0 tests | **117 tests (100% pass rate)** |
+| **Test Suites** | 0 files | **16 test suites** (`tests/test_*.py`) |
+| **Git Commits** | 1 initial commit | **32 semantic commits** |
 | **Code Quality & Linting** | Unchecked | **Ruff (100% pass, 0 errors), Pyright (0 errors)** |
 | **Supported Storage Backends** | Local CSV only | **Local CSV, Apache Parquet, AWS S3, Mock S3** |
 | **Containerization** | None | **Production Multi-stage Docker + Docker Compose + CI Build + GHCR Deploy** |
-| **MLOps Capabilities** | In-memory only | **Unified Pipeline (`pipeline.joblib`), versioned registry, out-of-time backtesting** |
+| **MLOps Capabilities** | In-memory only | **Unified Pipeline, BG/NBD + Gamma-Gamma CLV, Hungarian Centroid Alignment, Backtesting** |
 | **Continuous Integration** | None | **Parallel CI Gates (Lint, Typecheck, Security, Tests, Docker) + CD to GHCR** |
 | **Branch Separation Model** | 1 branch (`main`) | **3 Branches (`main`, `debugging-and-error-correction`, `dev`)** |
 | **Known Security / Traversal Vulnerabilities** | Unaudited | **0 (Strictly mitigated & tested)** |
@@ -208,6 +208,41 @@ Over the course of structured engineering iterations (**Phases 0 through 12 + De
   - `8c29032` (*ci: implement developer tooling — pre-commit automation, Makefile, and PowerShell task runner*)
   - `5e6160a` (*feat(backtesting): out-of-time temporal window splitting, Markov transition matrix, and forward monetization*)
   - Release Tag: `v1.3.0` synced and promoted across `main`, `dev`, and `debugging-and-error-correction`.
+
+### Phase 14 — Data Integrity, Two-Pass Net Reconciliation & GDPR Governance
+- **Target Branch:** `debugging-and-error-correction`
+- **Objective:** Eliminate upward bias in customer Frequency and Monetary metrics caused by naive return/cancellation dropping, and implement first-party GDPR/CCPA data privacy compliance with $O(1)$ machine unlearning.
+- **Deliverables:**
+  - **Two-Pass Net-Settlement Reconciler:** Built [`src/reconciler.py`](src/reconciler.py) with `reconcile_transactions()` matching reversal records (negative quantity or cancellation invoice prefixes) against preceding purchases by `customer_id`, product item description, and temporal lookback (default 180 days). Produces settled quantities and net order spend rather than blindly dropping negative rows.
+  - **GDPR Machine Unlearning:** Built [`src/governance.py`](src/governance.py) implementing `pseudonymize_customer_ids()` using HMAC-SHA256 with injected salt, and `forget_user()` performing exact $O(1)$ arithmetic cluster centroid updating:
+    $$c_k^{\text{new}} = \frac{N_k \cdot c_k^{\text{old}} - x_u}{N_k - 1}$$
+    allowing compliance with GDPR Article 17 (Right to Erasure) without retraining models.
+  - **Test Suite:** Built [`tests/test_reconciler.py`](tests/test_reconciler.py) and [`tests/test_governance.py`](tests/test_governance.py) adding 7 automated tests.
+- **Git Commit:** `f59b653` (*feat(reconciler): two-pass net transaction reconciliation and GDPR machine unlearning (Phase 14)*)
+
+### Phase 15 — Mathematical Hardening: Centroid Alignment, Multi-Index Validity & Whale Isolation
+- **Target Branch:** `debugging-and-error-correction`
+- **Objective:** Prevent the "silent production killer" (cluster label switching across retraining runs), eliminate multicollinearity between spend and purchase frequency, isolate extreme B2B wholesale accounts, and evaluate multi-index cluster validity.
+- **Deliverables:**
+  - **Hungarian Centroid Matcher:** Engineered `align_centroids()` in [`src/clustering.py`](src/clustering.py) using `scipy.optimize.linear_sum_assignment` and Euclidean `cdist` to map newly fitted cluster centroids to reference anchor centroids, with deterministic composite health score sorting fallback ($-R + F + M$) to guarantee persistent, stable persona mapping.
+  - **Two-Stage Whale Isolation:** Built `isolate_whales()` in [`src/clustering.py`](src/clustering.py) to quarantine accounts with $M > P_{99.5}$ or $F > P_{99.5}$ into an *Institutional / Apex VIP* segment, preventing 10 corporate accounts from compressing 99% of normal retail shoppers into a single undifferentiated cluster.
+  - **Multi-Index Cluster Selector:** Vectorized `evaluate_clusters()` in [`src/clustering.py`](src/clustering.py) to compute Calinski-Harabasz and Davies-Bouldin indices in linear time $O(n \cdot k)$ alongside subsampled Silhouette scores.
+  - **Orthogonalized Spend & Lookback Windows:** Enhanced `calculate_rfm()` in [`src/rfm.py`](src/rfm.py) with configurable lookback windows (`lookback_days`) and average monetary value ($M_{\text{avg}} = M_{\text{total}} / F$) via `use_average_monetary=True`, plus `check_rfm_collinearity()` helper.
+  - **Robust Scaling:** Added `RobustScaler` (IQR 25-75) option in `preprocess_rfm()` and Scikit-Learn pipeline creation.
+  - **Boundary Confidence Scoring:** Built `compute_boundary_confidence()` implementing $\text{Confidence}(u) = 1 - d_1 / d_2$ to flag boundary-ambiguous customer profiles.
+  - **Test Suite:** Built [`tests/test_centroid_alignment.py`](tests/test_centroid_alignment.py), expanding total passing test count to 112 tests.
+- **Git Commit:** `0bdb319` (*feat(clustering): Hungarian centroid alignment, multi-index validity selector, and whale isolation (Phase 15)*)
+
+### Phase 16 — Probabilistic Customer Lifetime Value (CLV) & Reverse-ETL CRM Activation
+- **Target Branch:** `dev`
+- **Objective:** Transition RFM from a backward-looking diagnostic into a forward-looking predictive intelligence platform using probabilistic customer lifetime value models (BG/NBD + Gamma-Gamma) and standardized CRM Reverse-ETL schemas.
+- **Deliverables:**
+  - **Analytical BG/NBD Model:** Engineered [`src/clv.py`](src/clv.py) with Maximum Likelihood Estimation via `scipy.optimize.minimize` (L-BFGS-B), computing posterior survival probability $P(\text{Alive})$ and expected future repeat transactions $E[Y(t)]$ over forward horizons (default 180 days / 6 months) in milliseconds with zero heavy MCMC dependencies.
+  - **Gamma-Gamma Submodel with Empirical Bayes Shrinkage:** Fitted monetary spend submodel on repeat buyers ($f \ge 1$) and implemented empirical Bayes prior shrinkage for zero-repeat buyers ($f=0$), resolving the classic Gamma-Gamma singularity where one-time buyers cause numerical errors.
+  - **Customer-Level 6-Month CLV Projections:** Integrated transaction rate with conditional expected spend into combined `calculate_customer_clv()` projections.
+  - **Reverse-ETL CRM Payload & 10% Stratified Holdout:** Built `prepare_crm_reverse_etl_payload()` in [`src/export.py`](src/export.py) formatting integer R/F, 2-decimal Monetary/CLV, and applying deterministic SHA-256 holdout hashing (`control_holdout = True`) to allocate 10% of audience for causal marketing lift testing.
+  - **Test Suite:** Built [`tests/test_clv.py`](tests/test_clv.py), expanding total automated test coverage to **117 tests with a 100% pass rate**.
+- **Git Commit:** `294692f` (*feat(clv): probabilistic BG/NBD and Gamma-Gamma CLV modeling and reverse-ETL CRM export (Phase 16)*)
 
 ---
 
@@ -410,6 +445,34 @@ Over the course of structured engineering iterations (**Phases 0 through 12 + De
   - $\ge 0.20$: Weak continuous separation (`st.warning`)
   - $< 0.20$: Poor separation with substantial overlap (`st.warning`)
 
+#### Bug 3.6: Cluster Label Switching Across Retraining Runs
+- **Location:** `src/clustering.py` (`align_centroids()`)
+- **Symptom:** Retraining K-Means on updated datasets causes cluster centroid index permutations (e.g. Cluster 0 represents *Champions* in run 1, but represents *Lost Customers* in run 2). Hardcoded mappings `{0: 'Champions'}` invert persona labels and trigger incorrect marketing actions.
+- **Root Cause:** Centroid-based mixture models are invariant to permutation of cluster indices.
+- **Resolution:** Implemented Hungarian bipartite matching via `scipy.optimize.linear_sum_assignment` against persisted anchor centroids, with a deterministic composite health rank fallback ($-R + F + M$) to guarantee persistent persona indices.
+- **Verification:** [`tests/test_centroid_alignment.py:test_align_centroids_hungarian_matching`](tests/test_centroid_alignment.py).
+
+#### Bug 3.7: Naive Return Dropping Causing Upward Frequency and Monetary Bias
+- **Location:** `src/reconciler.py` (`reconcile_transactions()`)
+- **Symptom:** Filtering out rows with negative quantities or 'C' invoice prefixes causes customers who place orders and subsequently cancel/return them to appear as high-frequency, high-value buyers.
+- **Root Cause:** Deleting cancellation events without netting against original purchase transactions.
+- **Resolution:** Engineered a two-pass net-settlement reconciler matching return records against preceding purchases by customer, item, and time window (180 days) to compute true net settled quantities and revenue.
+- **Verification:** [`tests/test_reconciler.py:test_reconcile_transactions_full_refund`](tests/test_reconciler.py).
+
+#### Bug 3.8: Wholesale Whale Distortion on Euclidean Clustering
+- **Location:** `src/clustering.py` (`isolate_whales()`)
+- **Symptom:** Extreme upper-tail B2B wholesale buyers ($M > P_{99.5}$) skew squared Euclidean distances in K-Means, causing multiple clusters to isolate a handful of whales while compressing 99% of normal retail shoppers into a single undifferentiated cluster.
+- **Root Cause:** Lack of upper-tail outlier isolation prior to clustering.
+- **Resolution:** Implemented two-stage hybrid isolation: deterministically route accounts with spend or frequency $> P_{99.5}$ into an *Institutional / Apex VIP* tier, then run K-Means on the remaining 99.5% retail core.
+- **Verification:** [`tests/test_centroid_alignment.py:test_isolate_whales_two_stage`](tests/test_centroid_alignment.py).
+
+#### Bug 3.9: Zero-Repeat Buyers Singularity in Gamma-Gamma CLV Submodel
+- **Location:** `src/clv.py` (`predict_conditional_spend()`)
+- **Symptom:** The Gamma-Gamma monetary submodel requires repeat purchase count $f \ge 1$ and fails with `ZeroDivisionError` or `NaN` values for one-time buyers (40–60% of typical retail customer bases).
+- **Root Cause:** Gamma-Gamma likelihood function is mathematically undefined for zero repeat transactions ($x = 0$).
+- **Resolution:** Partitioned inference: fitted Gamma-Gamma strictly on the repeat-buyer subset ($x \ge 1$), and applied empirical Bayes shrinkage for one-time buyers shrinking their single observed order value toward the population prior median with smoothing constant $\kappa = 1.0$.
+- **Verification:** [`tests/test_clv.py:test_gamma_gamma_empirical_bayes_shrinkage`](tests/test_clv.py).
+
 ---
 
 ### 3.4 Security Vulnerabilities & Memory Exhaustion Risks
@@ -577,7 +640,10 @@ Audit:     87 tests (Review audit hardening — test path independence, silhouet
 CI/CD:     88 tests (Parallel CI quality gates, pip-audit vulnerability scanning, pytest coverage summary, GHCR container publishing)
 Governance: 89 tests (Repository governance, PR & Issue templates, Dependabot automated audits)
 Tooling:    90 tests (Developer experience, pre-commit quality hooks, Makefile & PowerShell task runner)
-Backtesting: 98 tests (Out-of-time temporal window splitting, Markov transition matrix, forward revenue realization)
+Backtesting: 98 tests (Out-of-Time temporal window splitting, Markov transition matrix, forward revenue realization)
+Phase 14:  105 tests (Two-pass transaction reconciler, GDPR HMAC pseudonymization & O(1) unlearning)
+Phase 15:  112 tests (Hungarian centroid alignment, whale isolation, multi-index validity selector)
+Phase 16:  117 tests (BG/NBD + Gamma-Gamma probabilistic CLV modeling, empirical Bayes shrinkage, CRM Reverse-ETL)
 ```
 
 ### Test Suite Breakdown
@@ -585,19 +651,23 @@ Backtesting: 98 tests (Out-of-time temporal window splitting, Markov transition 
 | Suite File | Tests | Focus Areas |
 |---|:---:|---|
 | [`tests/test_backtesting.py`](tests/test_backtesting.py) | **8** | Temporal window splitting, Markov transition matrix, retention/churn calculations, forward monetization, AppTest smoke |
+| [`tests/test_centroid_alignment.py`](tests/test_centroid_alignment.py) | **7** | Hungarian assignment against anchor centroids, deterministic composite health sort, B2B whale isolation, boundary confidence scoring, multi-index evaluation, RobustScaler |
 | [`tests/test_ci_config.py`](tests/test_ci_config.py) | **5** | GitHub Actions workflow YAML parsing, requirements decoupling, parallel gates, GHCR publishing, repository governance & developer tooling |
 | [`tests/test_cleaning.py`](tests/test_cleaning.py) | **12** | Accounting negatives, string-float normalization, leading zeros, null invoices, net returns policy, currency export, CSV formula injection defense |
 | [`tests/test_cloud_storage.py`](tests/test_cloud_storage.py) | **13** | S3 mock load/upload, path traversal prevention, 50MB size limit, streaming read byte bounds, Parquet roundtrip |
+| [`tests/test_clv.py`](tests/test_clv.py) | **5** | Analytical BG/NBD MLE fitting, P(Alive) monotonicity, Gamma-Gamma spend model, empirical Bayes shrinkage on zero-repeat buyers, Reverse-ETL 10% holdout |
 | [`tests/test_clustering.py`](tests/test_clustering.py) | **6** | Optimal $k$ evaluation, silhouette scoring, low-variance input interception, pre-scaling variance guard, large-dataset subsampling |
 | [`tests/test_cohort.py`](tests/test_cohort.py) | **2** | Monthly retention pivot table, non-contiguous month index reindexing |
 | [`tests/test_decoupling_and_pipeline.py`](tests/test_decoupling_and_pipeline.py) | **7** | Streamlit-free core modules, headless pipeline, unified `pipeline.joblib` serialization, inference parity, legacy fallback |
 | [`tests/test_docker_config.py`](tests/test_docker_config.py) | **3** | Dockerfile syntax, unprivileged user configuration, compose file integrity (directory-independent) |
+| [`tests/test_governance.py`](tests/test_governance.py) | **3** | GDPR HMAC-SHA256 pseudonymization, O(1) machine unlearning centroid arithmetic update formula |
 | [`tests/test_ingestion.py`](tests/test_ingestion.py) | **9** | CSV parsing, `StringIO` streams, duplicate mapping rejection, sample dataset integrity |
 | [`tests/test_model_registry.py`](tests/test_model_registry.py) | **9** | Artifact serialization, version cataloging, single-customer inference, AppTest smoke tests |
 | [`tests/test_pages_smoke.py`](tests/test_pages_smoke.py) | **6** | Headless Streamlit `AppTest` smoke suite covering empty guard states and populated analytical sessions across all 6 pages |
 | [`tests/test_personas.py`](tests/test_personas.py) | **4** | Composite percentile ranking, $k=10$ unique collision labels, rule-based classification, global dictionary immutability, bracket indexing |
+| [`tests/test_reconciler.py`](tests/test_reconciler.py) | **4** | Two-pass transaction reconciler: full return netting, partial refunds, lookback window bounds |
 | [`tests/test_rfm.py`](tests/test_rfm.py) | **14** | Recency/Frequency/Monetary math, zero-spend customer handling, aggregation correctness, net refunds, currency visualization, quintile baseline scoring |
-| **Total** | **87** | **100% Pass Rate (0 failures, 0 skipped)** |
+| **Total** | **117** | **100% Pass Rate (0 failures, 0 skipped)** |
 
 ---
 
@@ -632,6 +702,14 @@ The repository history reflects structured, semantic commits aligned with projec
 | `cfbb5ac` | `docs: archive implementation plan into progress report and untrack implementation_plan.md` | Governance |
 | `211787f` | `refactor: architectural decoupling — remove Streamlit from core, unified sklearn pipeline, explicit model persistence (Phase 11)` | Phase 11 |
 | `3129b64` | `ci: production engineering — ruff, pyright, docker build in CI, quintile baselines, smoke suite (Phase 12)` | Phase 12 |
+| `cdb950a` | `ci: modernize GitHub Actions pipeline with parallel gates, CD publishing, and 3-branch model` | Phase 13 |
+| `48c7859` | `ci: implement repository governance — PR template, issue forms, and dependabot automation` | Phase 13 |
+| `8c29032` | `ci: implement developer tooling — pre-commit automation, Makefile, and PowerShell task runner` | Phase 13 |
+| `5e6160a` | `feat(backtesting): out-of-time temporal window splitting, Markov transition matrix, and forward monetization` | Phase 13 |
+| `1832ac0` | `docs: document Phase 13 enterprise git governance, parallel CI/CD, backtesting engine, and v1.3.0 release` | Phase 13 |
+| `f59b653` | `feat(reconciler): two-pass net transaction reconciliation and GDPR machine unlearning (Phase 14)` | Phase 14 |
+| `0bdb319` | `feat(clustering): Hungarian centroid alignment, multi-index validity selector, and whale isolation (Phase 15)` | Phase 15 |
+| `294692f` | `feat(clv): probabilistic BG/NBD and Gamma-Gamma CLV modeling and reverse-ETL CRM export (Phase 16)` | Phase 16 |
 
 ---
 
