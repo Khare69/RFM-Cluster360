@@ -9,7 +9,7 @@
 [![Apache Parquet](https://img.shields.io/badge/Format-Apache%20Parquet-teal.svg)](https://parquet.apache.org/)
 [![Docker](https://img.shields.io/badge/Docker-Containerized-2496ED.svg?logo=docker&logoColor=white)](Dockerfile)
 [![MLOps](https://img.shields.io/badge/MLOps-Model%20Registry-blueviolet.svg)](#-mlops-model-artifact-registry)
-[![Tests](https://img.shields.io/badge/Tests-87%20Passed-brightgreen.svg)](#-running-the-test-suite)
+[![Tests](https://img.shields.io/badge/Tests-121%20Passed-brightgreen.svg)](#-running-the-test-suite)
 [![Report](https://img.shields.io/badge/Report-Project%20Progress%20%26%20Bugs-informational.svg)](PROJECT_PROGRESS_REPORT.md)
 [![License](https://img.shields.io/badge/License-Apache_2.0-green.svg)](LICENSE)
 
@@ -110,6 +110,28 @@ An enterprise-ready customer intelligence and segmentation platform that transfo
     - Comprehensive headless UI smoke testing via `streamlit.testing.v1.AppTest` covering `app.py` and all 5 sub-pages (`tests/test_pages_smoke.py`).
     - Validates both uninitialized guard clause warning states and fully populated interactive session states.
     - Defensive resolution of dynamic callback crashes (sidebar re-clustering, model fallback guards, Plotly inertia lookups).
+
+16. **Two-Pass Net-Settlement Transaction Reconciler**
+    - Built [`src/reconciler.py`](src/reconciler.py) to match returns and order cancellations against preceding purchase transactions by customer, item, and time window (180 days).
+    - Eliminates upward frequency and spend distortion from naive return deletion.
+
+17. **Hungarian Centroid Alignment & Whale Isolation**
+    - Uses `scipy.optimize.linear_sum_assignment` to align newly fitted K-Means centroids to persisted anchor centroids, eliminating cluster label switching across retraining runs.
+    - Two-stage hybrid isolation deterministically quarantines extreme upper-tail B2B wholesale buyers ($M > P_{99.5}$) into an *Apex VIP* tier, preventing them from compressing the 99% retail core.
+    - Multi-index evaluation vectorizes Calinski-Harabasz and Davies-Bouldin metrics alongside subsampled Silhouette scores.
+
+18. **Probabilistic Customer Lifetime Value Engine (BG/NBD + Gamma-Gamma)**
+    - Built [`src/clv.py`](src/clv.py) implementing analytical Maximum Likelihood Estimation for Beta-Geometric/Negative Binomial Distribution (BG/NBD) and Gamma-Gamma spend submodels.
+    - Computes posterior churn probability ($1 - P(\text{Alive})$), expected future repeat transactions $E[Y(t)]$, and 6-month projected CLV.
+    - Resolves zero-repeat buyer singularity via empirical Bayes shrinkage for one-time purchasers.
+
+19. **First-Party GDPR/CCPA Machine Unlearning & Pseudonymization**
+    - Built [`src/governance.py`](src/governance.py) featuring HMAC-SHA256 customer identifier pseudonymization.
+    - Supports GDPR Article 17 (Right to Erasure) with exact $O(1)$ arithmetic cluster centroid updates without retraining.
+
+20. **Reverse-ETL CRM Activation & Three-Tier Testing Pyramid**
+    - Standardized CRM export payloads with a deterministic 10% stratified holdout flag (`control_holdout = True`) for causal A/B testing of campaign lift.
+    - Comprehensive testing pyramid in [`tests/test_metamorphic_and_contracts.py`](tests/test_metamorphic_and_contracts.py) covering data contracts, metamorphic rank monotonicity, and bootstrap cluster stability ($ARI \ge 0.80$).
 
 
 ---
@@ -220,16 +242,20 @@ rfm-cluster360/
 │           └── transactions.parquet
 │
 ├── src/                            # Core computational engine (Modular, testable, zero UI dependencies)
-│   ├── ingestion.py                # CSV loading, encoding fallbacks, fuzzy column mapping, @st.cache_data
+│   ├── ingestion.py                # CSV loading, encoding fallbacks, fuzzy column mapping
 │   ├── cloud_storage.py            # AWS S3 bucket loader & uploader, local mock fallback, moto support
 │   ├── cleaning.py                 # Hygiene rules, accounting negatives, ID normalization, CleaningReport
-│   ├── rfm.py                      # Pure-Pandas RFM calculation, summary stats, @st.cache_data
-│   ├── clustering.py               # Log transforms, scaling, K-Means, silhouette evaluation, variance guard
+│   ├── reconciler.py               # Two-pass net-settlement transaction reconciler
+│   ├── governance.py               # GDPR/CCPA HMAC-SHA256 pseudonymization & O(1) machine unlearning
+│   ├── rfm.py                      # Pure-Pandas RFM calculation, quintile baselines, lookbacks, avg spend
+│   ├── clustering.py               # Hungarian centroid alignment, whale isolation, multi-index validity
+│   ├── clv.py                      # Probabilistic BG/NBD + Gamma-Gamma CLV modeling & empirical Bayes shrinkage
 │   ├── personas.py                 # Composite score ranking, collision-free persona classification
 │   ├── cohort.py                   # Monthly acquisition cohort retention matrix with contiguous reindexing
 │   ├── backtesting.py              # Temporal window splitting, Markov transition matrix, forward realization
 │   ├── model_registry.py           # MLOps serialization, version listing, loading, and live inference
-│   └── export.py                   # Clean CSV & Apache Parquet (pyarrow) serialization
+│   ├── export.py                   # Clean CSV, Parquet, and Reverse-ETL CRM export with 10% holdout
+│   └── logger.py                   # Standardized structured application logging
 │
 ├── pages/                          # Streamlit Multipage Navigation
 │   ├── 1_Overview.py               # High-level KPIs, distributions, and playbooks
