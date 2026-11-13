@@ -3,13 +3,19 @@ Machine Learning module for RFM clustering using K-Means.
 Implements log-transformations, standardization, automatic k-selection via silhouette scores, and cluster profiling.
 """
 
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple, Union
 import numpy as np
 import pandas as pd
+from scipy.optimize import linear_sum_assignment
+from scipy.spatial.distance import cdist
 from sklearn.cluster import KMeans
-from sklearn.metrics import silhouette_score
+from sklearn.metrics import (
+    calinski_harabasz_score,
+    davies_bouldin_score,
+    silhouette_score,
+)
 from sklearn.pipeline import Pipeline
-from sklearn.preprocessing import FunctionTransformer, StandardScaler
+from sklearn.preprocessing import FunctionTransformer, RobustScaler, StandardScaler
 
 from config.settings import DEFAULT_K_MAX, DEFAULT_K_MIN, MIN_CUSTOMERS_FOR_CLUSTERING, RANDOM_STATE
 
@@ -17,9 +23,11 @@ from config.settings import DEFAULT_K_MAX, DEFAULT_K_MIN, MIN_CUSTOMERS_FOR_CLUS
 def preprocess_rfm(
     rfm_df: pd.DataFrame,
     features: Optional[List[str]] = None,
-) -> Tuple[np.ndarray, StandardScaler, List[str]]:
+    scaler_type: str = "standard",
+) -> Tuple[np.ndarray, Union[StandardScaler, RobustScaler], List[str]]:
     """
-    Applies log1p transformation to squash right-skewed distributions, followed by StandardScaler.
+    Applies log1p transformation to squash right-skewed distributions, followed by
+    StandardScaler or RobustScaler.
 
     Parameters
     ----------
@@ -27,10 +35,12 @@ def preprocess_rfm(
         DataFrame containing RFM metrics.
     features : list of str, optional
         Features to scale. Defaults to ['recency', 'frequency', 'monetary'].
+    scaler_type : str, default 'standard'
+        Scaler algorithm: 'standard' for StandardScaler, 'robust' for RobustScaler (IQR 25-75).
 
     Returns
     -------
-    Tuple[np.ndarray, StandardScaler, List[str]]
+    Tuple[np.ndarray, Union[StandardScaler, RobustScaler], List[str]]
         (scaled_features_array, fitted_scaler, feature_names)
     """
     cols = features if features is not None else ["recency", "frequency", "monetary"]
@@ -54,15 +64,17 @@ def preprocess_rfm(
     # Log1p transformation to handle skewness
     log_transformed = np.log1p(data.values)
 
-    # Pre-scaling variance guard: check log1p(data).std(axis=0) before StandardScaler forces std=1.0
+    # Pre-scaling variance guard: check log1p(data).std(axis=0) before scaler forces unit variance
     feature_stds = np.std(log_transformed, axis=0)
     if float(np.max(feature_stds)) < 0.01:
         scaler = StandardScaler(with_std=False)
         scaler.fit(log_transformed)
         scaled_data = np.zeros_like(log_transformed)
     else:
-        # StandardScaler to bring all 3 dimensions to standard normal (mean=0, variance=1)
-        scaler = StandardScaler()
+        if scaler_type.lower() == "robust":
+            scaler = RobustScaler(quantile_range=(25.0, 75.0))
+        else:
+            scaler = StandardScaler()
         scaled_data = scaler.fit_transform(log_transformed)
 
     return scaled_data, scaler, cols
@@ -122,6 +134,8 @@ def evaluate_clusters(
     k_values: List[int] = []
     silhouette_scores: List[float] = []
     inertias: List[float] = []
+    calinski_harabasz_scores: List[float] = []
+    davies_bouldin_scores: List[float] = []
 
     for k in eval_range:
         kmeans = KMeans(n_clusters=k, random_state=random_state, n_init=10)
@@ -139,26 +153,40 @@ def evaluate_clusters(
                         random_state=random_state,
                     )
                 )
+                calinski = float(calinski_harabasz_score(scaled_data, labels))
+                davies = float(davies_bouldin_score(scaled_data, labels))
             else:
                 sil = 0.0
+                calinski = 0.0
+                davies = 99.0
         except Exception:
             sil = 0.0
+            calinski = 0.0
+            davies = 99.0
 
         k_values.append(int(k))
         silhouette_scores.append(round(sil, 4))
         inertias.append(round(float(kmeans.inertia_), 2))
+        calinski_harabasz_scores.append(round(calinski, 2))
+        davies_bouldin_scores.append(round(davies, 4))
 
-    # Determine best k (highest silhouette)
+    # Determine best k (highest silhouette, highest calinski, lowest davies)
     best_idx = int(np.argmax(silhouette_scores))
     best_k = k_values[best_idx]
     best_silhouette = silhouette_scores[best_idx]
+    best_k_calinski = k_values[int(np.argmax(calinski_harabasz_scores))]
+    best_k_davies = k_values[int(np.argmin(davies_bouldin_scores))]
 
     return {
         "k_values": k_values,
         "silhouette_scores": silhouette_scores,
         "inertias": inertias,
+        "calinski_harabasz_scores": calinski_harabasz_scores,
+        "davies_bouldin_scores": davies_bouldin_scores,
         "best_k": best_k,
         "best_silhouette": best_silhouette,
+        "best_k_calinski": best_k_calinski,
+        "best_k_davies": best_k_davies,
     }
 
 
@@ -256,15 +284,133 @@ def get_cluster_profiles(clustered_df: pd.DataFrame) -> pd.DataFrame:
     return profiles
 
 
+def align_centroids(
+    centroids: np.ndarray,
+    anchor_centroids: Optional[np.ndarray] = None,
+) -> Tuple[np.ndarray, Dict[int, int]]:
+    """
+    Prevents cluster label switching across retraining runs and datasets.
+
+    If anchor_centroids are provided and have matching shape, solves minimum-weight
+    bipartite matching via Hungarian assignment (linear_sum_assignment) on Euclidean distance.
+    Otherwise, applies deterministic composite health rank sorting:
+        Health = -Recency_centroid + Frequency_centroid + Monetary_centroid
+    ranking 0 (Dormant/Lowest) to k-1 (Champions/Highest).
+
+    Parameters
+    ----------
+    centroids : np.ndarray
+        Array of shape (k, d) representing newly fitted cluster centers.
+    anchor_centroids : np.ndarray, optional
+        Persisted reference centroids from previous model runs.
+
+    Returns
+    -------
+    Tuple[np.ndarray, Dict[int, int]]
+        (aligned_centroids, label_mapping) where label_mapping maps old_cluster_id -> aligned_cluster_id.
+    """
+    if anchor_centroids is not None and anchor_centroids.shape == centroids.shape:
+        cost_matrix = cdist(centroids, anchor_centroids, metric="euclidean")
+        row_ind, col_ind = linear_sum_assignment(cost_matrix)
+        label_mapping = {int(r): int(c) for r, c in zip(row_ind, col_ind)}
+    else:
+        # Deterministic sort: composite score (-R + F + M)
+        if centroids.shape[1] >= 3:
+            composite_health = -centroids[:, 0] + centroids[:, 1] + centroids[:, 2]
+        else:
+            composite_health = np.sum(centroids, axis=1)
+        sorted_indices = np.argsort(composite_health)
+        label_mapping = {int(old_idx): int(new_idx) for new_idx, old_idx in enumerate(sorted_indices)}
+
+    aligned_centroids = np.zeros_like(centroids)
+    for old_i, new_i in label_mapping.items():
+        aligned_centroids[new_i] = centroids[old_i]
+
+    return aligned_centroids, label_mapping
+
+
+def isolate_whales(
+    rfm_df: pd.DataFrame,
+    quantile: float = 0.995,
+) -> Tuple[pd.DataFrame, pd.DataFrame]:
+    """
+    Executes Two-Stage Hybrid Isolation to prevent extreme B2B wholesale buyers
+    from distorting K-Means centroids and compressing the 99% retail core.
+
+    Customers with spend or frequency strictly above the specified quantile (e.g., 99.5th percentile)
+    are routed to an Institutional / Apex VIP subset.
+
+    Parameters
+    ----------
+    rfm_df : pd.DataFrame
+        DataFrame with 'frequency' and 'monetary' columns.
+    quantile : float, default 0.995
+        Upper-tail quantile threshold.
+
+    Returns
+    -------
+    Tuple[pd.DataFrame, pd.DataFrame]
+        (retail_core_df, whales_df)
+    """
+    if rfm_df.empty or len(rfm_df) < 50:
+        return rfm_df.copy(), rfm_df.iloc[0:0].copy()
+
+    f_thresh = float(rfm_df["frequency"].quantile(quantile))
+    m_thresh = float(rfm_df["monetary"].quantile(quantile))
+
+    whale_mask = (rfm_df["frequency"] > f_thresh) | (rfm_df["monetary"] > m_thresh)
+    whales = rfm_df[whale_mask].copy()
+    retail = rfm_df[~whale_mask].copy()
+
+    return retail.reset_index(drop=True), whales.reset_index(drop=True)
+
+
+def compute_boundary_confidence(
+    scaled_data: np.ndarray,
+    centroids: np.ndarray,
+) -> np.ndarray:
+    """
+    Computes cluster assignment confidence score for each customer based on
+    the ratio of Euclidean distance to the assigned centroid vs the second-closest centroid:
+
+        Confidence(u) = 1 - ||x_u - c_1|| / ||x_u - c_2||
+
+    Returns an array of floats in [0.0, 1.0], where values near 0.0 indicate boundary ambiguity.
+
+    Parameters
+    ----------
+    scaled_data : np.ndarray
+        Array of shape (n_samples, d).
+    centroids : np.ndarray
+        Array of shape (k, d).
+
+    Returns
+    -------
+    np.ndarray
+        Array of confidence scores of length n_samples.
+    """
+    if centroids.shape[0] < 2:
+        return np.ones(scaled_data.shape[0], dtype=float)
+
+    dists = cdist(scaled_data, centroids, metric="euclidean")
+    sorted_dists = np.sort(dists, axis=1)
+    d1 = sorted_dists[:, 0]
+    d2 = sorted_dists[:, 1]
+
+    confidence = 1.0 - (d1 / np.maximum(d2, 1e-6))
+    return np.clip(confidence, 0.0, 1.0)
+
+
 def create_rfm_pipeline(
     k: int,
     random_state: int = RANDOM_STATE,
-    scaler: Optional[StandardScaler] = None,
+    scaler: Optional[Union[StandardScaler, RobustScaler]] = None,
     kmeans_model: Optional[KMeans] = None,
+    scaler_type: str = "standard",
 ) -> Pipeline:
     """
     Constructs a unified Scikit-Learn Pipeline combining log1p transformation,
-    StandardScaler normalization, and KMeans clustering.
+    scaling (StandardScaler or RobustScaler), and KMeans clustering.
 
     Parameters
     ----------
@@ -272,17 +418,25 @@ def create_rfm_pipeline(
         Number of clusters.
     random_state : int, default RANDOM_STATE
         Random state for reproducibility.
-    scaler : StandardScaler, optional
-        Pre-configured or pre-fitted StandardScaler. Defaults to a fresh StandardScaler().
+    scaler : StandardScaler or RobustScaler, optional
+        Pre-configured or pre-fitted scaler. Defaults to a fresh scaler.
     kmeans_model : KMeans, optional
         Pre-configured or pre-fitted KMeans estimator. Defaults to KMeans(n_clusters=k).
+    scaler_type : str, default 'standard'
+        'standard' for StandardScaler or 'robust' for RobustScaler.
 
     Returns
     -------
     Pipeline
         Unified Scikit-Learn Pipeline ready for fitting or inference.
     """
-    scaler_step = scaler if scaler is not None else StandardScaler()
+    if scaler is not None:
+        scaler_step = scaler
+    elif scaler_type.lower() == "robust":
+        scaler_step = RobustScaler(quantile_range=(25.0, 75.0))
+    else:
+        scaler_step = StandardScaler()
+
     kmeans_step = (
         kmeans_model
         if kmeans_model is not None
@@ -300,6 +454,7 @@ def fit_rfm_pipeline(
     k: int,
     features: Optional[List[str]] = None,
     random_state: int = RANDOM_STATE,
+    scaler_type: str = "standard",
 ) -> Tuple[Pipeline, np.ndarray]:
     """
     Fits a unified Scikit-Learn Pipeline on raw RFM metrics and returns the fitted pipeline and cluster labels.
@@ -314,6 +469,8 @@ def fit_rfm_pipeline(
         Feature column names. Defaults to ['recency', 'frequency', 'monetary'].
     random_state : int, default RANDOM_STATE
         Random state for reproducibility.
+    scaler_type : str, default 'standard'
+        'standard' or 'robust'.
 
     Returns
     -------
@@ -332,7 +489,7 @@ def fit_rfm_pipeline(
         )
 
     data = rfm_df[cols].clip(lower=0.0).values
-    pipeline = create_rfm_pipeline(k=k, random_state=random_state)
+    pipeline = create_rfm_pipeline(k=k, random_state=random_state, scaler_type=scaler_type)
     labels = pipeline.fit_predict(data)
     return pipeline, labels
 

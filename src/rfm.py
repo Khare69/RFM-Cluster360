@@ -7,6 +7,7 @@ from datetime import date, datetime
 from typing import Optional, Union, Dict
 import numpy as np
 import pandas as pd
+from scipy.stats import pearsonr
 
 
 def default_snapshot_date(df: pd.DataFrame) -> pd.Timestamp:
@@ -37,6 +38,8 @@ def default_snapshot_date(df: pd.DataFrame) -> pd.Timestamp:
 def calculate_rfm(
     df: pd.DataFrame,
     snapshot_date: Optional[Union[str, date, datetime, pd.Timestamp]] = None,
+    lookback_days: Optional[int] = None,
+    use_average_monetary: bool = False,
 ) -> pd.DataFrame:
     """
     Calculates RFM metrics per unique customer.
@@ -44,7 +47,8 @@ def calculate_rfm(
     Definitions:
     - Recency: Days elapsed between the snapshot date and customer's latest purchase.
     - Frequency: Total number of unique orders/invoices placed by the customer.
-    - Monetary: Total monetary expenditure across all purchases (quantity * unit_price).
+    - Monetary: Total monetary expenditure across all purchases (quantity * unit_price),
+      or average transaction spend if use_average_monetary=True.
 
     Parameters
     ----------
@@ -52,6 +56,11 @@ def calculate_rfm(
         Cleaned transaction DataFrame containing ['customer_id', 'invoice_no', 'invoice_date', 'quantity', 'unit_price'].
     snapshot_date : str, date, datetime, optional
         Reference point date for calculating recency. Defaults to 1 day after max(invoice_date).
+    lookback_days : int, optional
+        If specified, filters transactions to the sliding observation window [snap_dt - lookback_days, snap_dt].
+    use_average_monetary : bool, default False
+        If True, replaces cumulative monetary sum with average transaction value (Monetary / Frequency),
+        orthogonalizing spend from purchase frequency and aligning with Gamma-Gamma CLV modeling.
 
     Returns
     -------
@@ -94,6 +103,13 @@ def calculate_rfm(
                 f"the latest transaction date ({max_dt.strftime('%Y-%m-%d')})."
             )
 
+    # Apply lookback window if configured
+    if lookback_days is not None and lookback_days > 0:
+        cutoff_dt = snap_dt - pd.Timedelta(days=lookback_days)
+        work_df = work_df[(work_df["invoice_date"] >= cutoff_dt) & (work_df["invoice_date"] <= snap_dt)]
+        if work_df.empty:
+            raise ValueError(f"No transactions found within the lookback window of {lookback_days} days.")
+
     # Aggregations per customer
     agg_dict = {
         "invoice_date": ["max", "min"],
@@ -134,6 +150,8 @@ def calculate_rfm(
     # Monetary (sum of line totals, defensively bounded at 0.0 for log1p)
     raw_monetary = np.round(grouped[("line_total", "sum")].values.astype(float), 2)
     rfm["monetary"] = np.maximum(0.0, raw_monetary)
+    if use_average_monetary:
+        rfm["monetary"] = np.round(rfm["monetary"] / np.maximum(1, rfm["frequency"]), 2)
 
     rfm["first_purchase"] = first_dates.values
     rfm["last_purchase"] = last_dates.values
@@ -258,4 +276,33 @@ def compute_rfm_quintiles(rfm_df: pd.DataFrame) -> pd.DataFrame:
     df_copy["rfm_total"] = r_score + f_score + m_score
 
     return df_copy
+
+
+def check_rfm_collinearity(rfm_df: pd.DataFrame) -> Dict[str, float]:
+    """
+    Computes Pearson correlation coefficients between RFM features to evaluate multicollinearity,
+    specifically checking if cumulative spend exhibits excessive collinearity with frequency.
+
+    Parameters
+    ----------
+    rfm_df : pd.DataFrame
+        DataFrame containing 'recency', 'frequency', and 'monetary'.
+
+    Returns
+    -------
+    Dict[str, float]
+        Dictionary of correlation coefficients ('r_f_corr', 'f_m_corr', 'r_m_corr').
+    """
+    if len(rfm_df) < 2:
+        return {"r_f_corr": 0.0, "f_m_corr": 0.0, "r_m_corr": 0.0}
+
+    r_f = float(pearsonr(rfm_df["recency"], rfm_df["frequency"])[0])
+    f_m = float(pearsonr(rfm_df["frequency"], rfm_df["monetary"])[0])
+    r_m = float(pearsonr(rfm_df["recency"], rfm_df["monetary"])[0])
+
+    return {
+        "r_f_corr": round(np.nan_to_num(r_f), 4),
+        "f_m_corr": round(np.nan_to_num(f_m), 4),
+        "r_m_corr": round(np.nan_to_num(r_m), 4),
+    }
 
