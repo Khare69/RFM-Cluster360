@@ -3,8 +3,10 @@ Data export utility module.
 Prepares clean, labeled customer segmentation DataFrames and serializes them to CSV bytes for download.
 """
 
+import hashlib
 import io
 from typing import List, Optional
+import numpy as np
 import pandas as pd
 
 
@@ -139,3 +141,74 @@ def to_parquet_bytes(
     buffer = io.BytesIO()
     export_df.to_parquet(buffer, engine="pyarrow", index=False)
     return buffer.getvalue()
+
+
+def prepare_crm_reverse_etl_payload(
+    labeled_df: pd.DataFrame,
+    campaign_salt: str = "rfm_cluster360_campaign_v1",
+    holdout_percentage: int = 10,
+) -> pd.DataFrame:
+    """
+    Formats customer segmentation and CLV metrics into standardized Reverse-ETL
+    CRM schemas (compatible with Klaviyo, Bloomreach, Google Value-Based Bidding).
+
+    Applies deterministic hashing to assign a stratified control holdout flag (default 10%),
+    allowing marketing teams to measure the true causal lift of segment campaigns.
+
+    Parameters
+    ----------
+    labeled_df : pd.DataFrame
+        DataFrame containing customer segmentation results.
+    campaign_salt : str, default 'rfm_cluster360_campaign_v1'
+        Salt string for deterministic holdout hashing.
+    holdout_percentage : int, default 10
+        Percentage of audience to allocate to control holdout.
+
+    Returns
+    -------
+    pd.DataFrame
+        Clean, validated CRM-ready schema.
+    """
+    df = labeled_df.copy()
+
+    crm_df = pd.DataFrame()
+    crm_df["customer_id"] = df["customer_id"].astype(str)
+    crm_df["recency_days"] = np.round(df["recency"]).astype(int) if "recency" in df.columns else 0
+    crm_df["frequency_orders"] = np.round(df["frequency"]).astype(int) if "frequency" in df.columns else 1
+    crm_df["monetary_spend"] = np.round(df["monetary"].astype(float), 2) if "monetary" in df.columns else 0.0
+
+    if "segment" in df.columns:
+        crm_df["segment_name"] = df["segment"].astype(str)
+    elif "Customer Segment" in df.columns:
+        crm_df["segment_name"] = df["Customer Segment"].astype(str)
+    else:
+        crm_df["segment_name"] = "Unassigned"
+
+    if "cluster" in df.columns:
+        crm_df["cluster_id"] = df["cluster"].astype(int)
+    elif "Cluster ID" in df.columns:
+        crm_df["cluster_id"] = df["Cluster ID"].astype(int)
+    else:
+        crm_df["cluster_id"] = 0
+
+    if "predicted_clv_6m" in df.columns:
+        crm_df["predicted_clv_6m"] = np.round(df["predicted_clv_6m"].astype(float), 2)
+    else:
+        crm_df["predicted_clv_6m"] = 0.0
+
+    if "churn_probability" in df.columns:
+        crm_df["churn_risk_pct"] = np.round(df["churn_probability"].astype(float) * 100, 1)
+    elif "p_alive" in df.columns:
+        crm_df["churn_risk_pct"] = np.round((1.0 - df["p_alive"].astype(float)) * 100, 1)
+    else:
+        crm_df["churn_risk_pct"] = 0.0
+
+    # Deterministic control holdout hashing
+    def _is_holdout(cid: str) -> bool:
+        key = f"{cid}_{campaign_salt}".encode("utf-8")
+        h = int(hashlib.sha256(key).hexdigest(), 16)
+        return (h % 100) < holdout_percentage
+
+    crm_df["control_holdout"] = crm_df["customer_id"].apply(_is_holdout)
+
+    return crm_df
