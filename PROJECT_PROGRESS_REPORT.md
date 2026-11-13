@@ -41,11 +41,11 @@ Over the course of structured engineering iterations (**Phases 0 through 12 + De
 
 ### Platform Health Metrics at a Glance
 
-| Metric | Day 1 (Phase 0) | Current State (Phase 16 Complete) |
+| Metric | Day 1 (Phase 0) | Current State (Phase 17 Complete) |
 |---|:---:|:---:|
-| **Automated Unit & Integration Tests** | 0 tests | **117 tests (100% pass rate)** |
-| **Test Suites** | 0 files | **16 test suites** (`tests/test_*.py`) |
-| **Git Commits** | 1 initial commit | **32 semantic commits** |
+| **Automated Unit & Integration Tests** | 0 tests | **121 tests (100% pass rate)** |
+| **Test Suites** | 0 files | **17 test suites** (`tests/test_*.py`) |
+| **Git Commits** | 1 initial commit | **33 semantic commits** |
 | **Code Quality & Linting** | Unchecked | **Ruff (100% pass, 0 errors), Pyright (0 errors)** |
 | **Supported Storage Backends** | Local CSV only | **Local CSV, Apache Parquet, AWS S3, Mock S3** |
 | **Containerization** | None | **Production Multi-stage Docker + Docker Compose + CI Build + GHCR Deploy** |
@@ -243,6 +243,22 @@ Over the course of structured engineering iterations (**Phases 0 through 12 + De
   - **Reverse-ETL CRM Payload & 10% Stratified Holdout:** Built `prepare_crm_reverse_etl_payload()` in [`src/export.py`](src/export.py) formatting integer R/F, 2-decimal Monetary/CLV, and applying deterministic SHA-256 holdout hashing (`control_holdout = True`) to allocate 10% of audience for causal marketing lift testing.
   - **Test Suite:** Built [`tests/test_clv.py`](tests/test_clv.py), expanding total automated test coverage to **117 tests with a 100% pass rate**.
 - **Git Commit:** `294692f` (*feat(clv): probabilistic BG/NBD and Gamma-Gamma CLV modeling and reverse-ETL CRM export (Phase 16)*)
+
+### Phase 17 — UI/UX Dashboard Integration, Structured Logging & Metamorphic Testing Pyramid
+- **Target Branch:** `dev`
+- **Objective:** Connect reconciliation, whale isolation, Hungarian centroid matching, and probabilistic CLV into the Streamlit presentation layer, implement structured logging across all core modules, and build a Three-Tier Machine Learning Testing Pyramid.
+- **Deliverables:**
+  - **Structured Application Logging:** Built [`src/logger.py`](src/logger.py) with standardized logging (`setup_logger("rfm_cluster360")`) and integrated loggers across [`services/segmentation_service.py`](services/segmentation_service.py) and domain algorithms, eliminating silent production exceptions.
+  - **3D WebGL Visualization with CLV & Churn Mapping:** Upgraded `scatter_3d_clusters()` in [`viz/cluster_scatter.py`](viz/cluster_scatter.py) and [`pages/3_Cluster_Map.py`](pages/3_Cluster_Map.py) to dynamically scale marker size by predicted 6-month CLV and color-map nodes by churn risk ($1 - P(\text{Alive})$) along a continuous gradient.
+  - **Multi-Index Validity Consensus UI:** Enhanced [`pages/2_RFM_Explorer.py`](pages/2_RFM_Explorer.py) with interactive consensus comparison tables for Silhouette, Calinski-Harabasz, and Davies-Bouldin metrics.
+  - **Reverse-ETL CRM Activation UI:** Embedded one-click CRM activation download in [`pages/1_Overview.py`](pages/1_Overview.py) with 10% stratified holdouts.
+  - **Three-Tier Testing Pyramid:** Built [`tests/test_metamorphic_and_contracts.py`](tests/test_metamorphic_and_contracts.py):
+    - *Tier 1 (Contracts)*: Verifies physical/economic boundaries on net quantities, non-negative recency, and bounded probabilities.
+    - *Tier 2 (Metamorphic)*: Asserts monotonic persona health rank and predicted CLV improvement under positive behavioral improvements.
+    - *Tier 2 (Bootstrap Stability)*: Asserts mean Adjusted Rand Index ($ARI \ge 0.80$) across 90% customer resamples.
+    - *Tier 3 (CRM Schema)*: Validates integer constraints, currency precision, and holdout distribution.
+  - **Test Growth:** Expanded automated test suite from 117 to **121 tests (100% pass rate)**.
+- **Git Commit:** Pending on `dev`.
 
 ---
 
@@ -644,6 +660,7 @@ Backtesting: 98 tests (Out-of-Time temporal window splitting, Markov transition 
 Phase 14:  105 tests (Two-pass transaction reconciler, GDPR HMAC pseudonymization & O(1) unlearning)
 Phase 15:  112 tests (Hungarian centroid alignment, whale isolation, multi-index validity selector)
 Phase 16:  117 tests (BG/NBD + Gamma-Gamma probabilistic CLV modeling, empirical Bayes shrinkage, CRM Reverse-ETL)
+Phase 17:  121 tests (Three-tier testing pyramid — data contracts, metamorphic rank monotonicity, bootstrap stability ARI >= 0.80)
 ```
 
 ### Test Suite Breakdown
@@ -662,12 +679,13 @@ Phase 16:  117 tests (BG/NBD + Gamma-Gamma probabilistic CLV modeling, empirical
 | [`tests/test_docker_config.py`](tests/test_docker_config.py) | **3** | Dockerfile syntax, unprivileged user configuration, compose file integrity (directory-independent) |
 | [`tests/test_governance.py`](tests/test_governance.py) | **3** | GDPR HMAC-SHA256 pseudonymization, O(1) machine unlearning centroid arithmetic update formula |
 | [`tests/test_ingestion.py`](tests/test_ingestion.py) | **9** | CSV parsing, `StringIO` streams, duplicate mapping rejection, sample dataset integrity |
+| [`tests/test_metamorphic_and_contracts.py`](tests/test_metamorphic_and_contracts.py) | **4** | Three-tier testing pyramid: physical data contracts, metamorphic rank/CLV monotonicity, bootstrap cluster stability (ARI >= 0.80), CRM schema validation |
 | [`tests/test_model_registry.py`](tests/test_model_registry.py) | **9** | Artifact serialization, version cataloging, single-customer inference, AppTest smoke tests |
 | [`tests/test_pages_smoke.py`](tests/test_pages_smoke.py) | **6** | Headless Streamlit `AppTest` smoke suite covering empty guard states and populated analytical sessions across all 6 pages |
 | [`tests/test_personas.py`](tests/test_personas.py) | **4** | Composite percentile ranking, $k=10$ unique collision labels, rule-based classification, global dictionary immutability, bracket indexing |
 | [`tests/test_reconciler.py`](tests/test_reconciler.py) | **4** | Two-pass transaction reconciler: full return netting, partial refunds, lookback window bounds |
 | [`tests/test_rfm.py`](tests/test_rfm.py) | **14** | Recency/Frequency/Monetary math, zero-spend customer handling, aggregation correctness, net refunds, currency visualization, quintile baseline scoring |
-| **Total** | **117** | **100% Pass Rate (0 failures, 0 skipped)** |
+| **Total** | **121** | **100% Pass Rate (0 failures, 0 skipped)** |
 
 ---
 

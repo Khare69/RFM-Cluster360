@@ -7,6 +7,7 @@ import streamlit as st
 from components.download_button import render_export_section
 from components.filters import render_sidebar_filters
 from components.metric_cards import render_overview_kpis, render_persona_cards_grid
+from src.export import prepare_crm_reverse_etl_payload, to_csv_bytes
 from viz.overview_charts import (
     rfm_summary_scatter,
     segment_customer_bar,
@@ -74,3 +75,20 @@ st.markdown("---")
 
 # Export Component
 render_export_section(filtered_df, title="📥 Export Filtered Customer Segment Data")
+
+# CRM Activation Section
+with st.expander("🚀 Reverse-ETL & Marketing Activation (CRM Export with 10% Control Holdout)"):
+    st.markdown(
+        "Download schema-compliant customer payloads ready for direct ingestion into CRM and ad platforms "
+        "(Klaviyo, Bloomreach, Google Value-Based Bidding). Automatically provisions a deterministic **10% stratified "
+        "control holdout** flag (`control_holdout = True`) to measure the true incremental revenue lift of campaigns."
+    )
+    crm_df = prepare_crm_reverse_etl_payload(filtered_df)
+    crm_csv_bytes = to_csv_bytes(crm_df)
+    st.download_button(
+        label="📥 Download CRM Reverse-ETL Payload (CSV)",
+        data=crm_csv_bytes,
+        file_name="crm_reverse_etl_activation_payload.csv",
+        mime="text/csv",
+        key="crm_reverse_etl_download",
+    )

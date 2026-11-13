@@ -15,13 +15,25 @@ import pandas as pd
 import streamlit as st
 
 from config.settings import MAX_FILE_SIZE_MB, RANDOM_STATE
+from src.clv import (
+    calculate_customer_clv as _calculate_customer_clv,
+    fit_bgnbd as _fit_bgnbd,
+    fit_gamma_gamma as _fit_gamma_gamma,
+    prepare_clv_summary as _prepare_clv_summary,
+)
 from src.clustering import (
+    align_centroids as _align_centroids,
     evaluate_clusters as _evaluate_clusters,
+    isolate_whales as _isolate_whales,
     preprocess_rfm as _preprocess_rfm,
 )
 from src.ingestion import load_csv as _load_csv
+from src.logger import setup_logger
 from src.model_registry import save_model_artifact as _save_model_artifact
+from src.reconciler import reconcile_transactions as _reconcile_transactions
 from src.rfm import calculate_rfm as _calculate_rfm
+
+logger = setup_logger("services.segmentation_service")
 
 
 @st.cache_data(show_spinner=False)
@@ -37,25 +49,83 @@ def cached_load_csv(
 
 
 @st.cache_data(show_spinner=False)
+def cached_reconcile_transactions(
+    df: pd.DataFrame,
+    lookback_window_days: int = 180,
+) -> Tuple[pd.DataFrame, Any]:
+    """
+    Cached wrapper for two-pass net-settlement transaction reconciliation.
+    """
+    logger.info("Executing two-pass transaction reconciliation (lookback=%d days)", lookback_window_days)
+    return _reconcile_transactions(df=df, lookback_window_days=lookback_window_days)
+
+
+@st.cache_data(show_spinner=False)
 def cached_calculate_rfm(
     df: pd.DataFrame,
     snapshot_date: Optional[Union[str, date, datetime, pd.Timestamp]] = None,
+    lookback_days: Optional[int] = None,
+    use_average_monetary: bool = False,
 ) -> pd.DataFrame:
     """
     Cached wrapper for RFM metrics computation per unique customer.
     """
-    return _calculate_rfm(df=df, snapshot_date=snapshot_date)
+    logger.info("Computing customer RFM (lookback=%s, avg_monetary=%s)", lookback_days, use_average_monetary)
+    return _calculate_rfm(
+        df=df,
+        snapshot_date=snapshot_date,
+        lookback_days=lookback_days,
+        use_average_monetary=use_average_monetary,
+    )
 
 
 @st.cache_data(show_spinner=False)
 def cached_preprocess_rfm(
     rfm_df: pd.DataFrame,
     features: Optional[List[str]] = None,
+    scaler_type: str = "standard",
 ) -> Tuple[np.ndarray, Any, List[str]]:
     """
     Cached wrapper for log1p transformation and standardization of RFM features.
     """
-    return _preprocess_rfm(rfm_df=rfm_df, features=features)
+    logger.info("Preprocessing RFM matrix with scaler_type=%s", scaler_type)
+    return _preprocess_rfm(rfm_df=rfm_df, features=features, scaler_type=scaler_type)
+
+
+@st.cache_data(show_spinner=False)
+def cached_calculate_clv(
+    transactions_df: pd.DataFrame,
+    snapshot_date: Optional[pd.Timestamp] = None,
+    horizon_days: float = 180.0,
+) -> pd.DataFrame:
+    """
+    Cached wrapper for probabilistic Customer Lifetime Value modeling (BG/NBD + Gamma-Gamma).
+    """
+    logger.info("Fitting probabilistic CLV models (BG/NBD + Gamma-Gamma) for horizon=%.1f days", horizon_days)
+    summary_df = _prepare_clv_summary(transactions_df, snapshot_date=snapshot_date)
+    bgnbd_params = _fit_bgnbd(summary_df)
+    gg_params = _fit_gamma_gamma(summary_df)
+    return _calculate_customer_clv(summary_df, bgnbd_params, gg_params, horizon_days=horizon_days)
+
+
+def isolate_whales_service(
+    rfm_df: pd.DataFrame,
+    quantile: float = 0.995,
+) -> Tuple[pd.DataFrame, pd.DataFrame]:
+    """
+    Two-stage hybrid isolation wrapper to segregate extreme upper-tail accounts from retail core.
+    """
+    return _isolate_whales(rfm_df=rfm_df, quantile=quantile)
+
+
+def align_centroids_service(
+    centroids: np.ndarray,
+    anchor_centroids: Optional[np.ndarray] = None,
+) -> Tuple[np.ndarray, Dict[int, int]]:
+    """
+    Centroid alignment wrapper using Hungarian matching to prevent label switching.
+    """
+    return _align_centroids(centroids=centroids, anchor_centroids=anchor_centroids)
 
 
 @st.cache_data(show_spinner=False)

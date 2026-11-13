@@ -130,6 +130,27 @@ with tab_ml:
             f"🤖 **Auto-Recommendation:** $k={best_k}$ achieved the highest silhouette score of **{best_score:.3f}**, indicating {sep_qual}."
         )
 
+        if "calinski_harabasz_scores" in eval_metrics and "davies_bouldin_scores" in eval_metrics:
+            with st.expander("📐 Multi-Index Mathematical Validity Consensus"):
+                st.markdown(
+                    "To ensure mathematical rigor and prevent local convergence artifacts, RFM Cluster360 evaluates three "
+                    "orthogonal cluster validity indices simultaneously: **Silhouette Score** (density & separation), "
+                    "**Calinski-Harabasz Index** (ratio of between-cluster to within-cluster dispersion; higher is better), and "
+                    "**Davies-Bouldin Index** (similarity between each cluster and its most similar neighbor; lower is better)."
+                )
+                consensus_df = pd.DataFrame({
+                    "k": eval_metrics["k_values"],
+                    "Silhouette Score": eval_metrics["silhouette_scores"],
+                    "Calinski-Harabasz (↑)": eval_metrics["calinski_harabasz_scores"],
+                    "Davies-Bouldin (↓)": eval_metrics["davies_bouldin_scores"],
+                    "Inertia (WCSS)": eval_metrics["inertias"],
+                })
+                st.dataframe(consensus_df, use_container_width=True, hide_index=True)
+                col_c1, col_c2, col_c3 = st.columns(3)
+                col_c1.metric("Silhouette Best k", f"k = {eval_metrics.get('best_k', best_k)}")
+                col_c2.metric("Calinski-Harabasz Best k", f"k = {eval_metrics.get('best_k_calinski', best_k)}")
+                col_c3.metric("Davies-Bouldin Best k", f"k = {eval_metrics.get('best_k_davies', best_k)}")
+
 with tab_dna:
     st.subheader("Segment Attribute Comparison (DNA Radar)")
     st.markdown("Compares the relative strengths and behavioral signatures of each segment.")

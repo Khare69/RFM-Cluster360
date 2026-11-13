@@ -30,15 +30,32 @@ if filtered_df.empty:
     st.stop()
 
 # Controls row
-col_opt1, col_opt2 = st.columns([1, 3])
+has_clv = "predicted_clv_6m" in filtered_df.columns
+has_churn = "churn_probability" in filtered_df.columns
+
+col_opt1, col_opt2, col_opt3 = st.columns([1.5, 1.5, 3])
 with col_opt1:
-    use_log = st.checkbox("Use Log10 Scale for Monetary (Z-Axis)", value=True, help="Squashes spending outliers so high spenders don't compress normal customers into a flat plane.")
+    use_log = st.checkbox("Log10 Monetary (Z-Axis)", value=True, help="Squashes spending outliers so high spenders don't compress normal customers into a flat plane.")
 
 with col_opt2:
+    size_clv = False
+    color_churn = False
+    if has_clv:
+        size_clv = st.checkbox("Size Points by Predicted CLV", value=True, help="Marker volume scales with predicted 6-month Customer Lifetime Value.")
+    if has_churn:
+        color_churn = st.checkbox("Color Points by Churn Risk", value=False, help="Switches categorical segment colors to a continuous churn gradient (Green = Active, Red = Churned).")
+
+with col_opt3:
     st.caption("💡 **Tip:** Click and drag to rotate the 3D plot. Scroll to zoom in/out. Hover over any node to inspect customer details.")
 
 # 3D Plot
-fig_3d = scatter_3d_clusters(filtered_df, use_log_monetary=use_log, currency_symbol=curr_sym)
+fig_3d = scatter_3d_clusters(
+    filtered_df,
+    use_log_monetary=use_log,
+    currency_symbol=curr_sym,
+    size_by_clv=size_clv,
+    color_by_churn=color_churn,
+)
 st.plotly_chart(fig_3d, use_container_width=True)
 
 st.markdown("---")

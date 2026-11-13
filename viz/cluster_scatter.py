@@ -15,9 +15,12 @@ def scatter_3d_clusters(
     labeled_df: pd.DataFrame,
     use_log_monetary: bool = False,
     currency_symbol: str = "$",
+    size_by_clv: bool = False,
+    color_by_churn: bool = False,
 ) -> go.Figure:
     """
     Interactive 3D scatter plot of customers positioned by Recency, Frequency, and Monetary values.
+    Supports point sizing scaled by predicted 6-month CLV and color-mapping to churn probability.
 
     Parameters
     ----------
@@ -27,6 +30,10 @@ def scatter_3d_clusters(
         Whether to plot log-transformed monetary scale for better outlier visibility.
     currency_symbol : str, default "$"
         Currency symbol to display in axis labels and hover data.
+    size_by_clv : bool, default False
+        Whether to scale 3D marker size by predicted 6-month CLV.
+    color_by_churn : bool, default False
+        Whether to color points along a continuous churn risk gradient (0% green to 100% red).
 
     Returns
     -------
@@ -42,34 +49,72 @@ def scatter_3d_clusters(
         z_col = "log_monetary"
         z_title = f"Monetary (Log10 {currency_symbol})"
 
-    fig = px.scatter_3d(
-        plot_df,
-        x="recency",
-        y="frequency",
-        z=z_col,
-        color="segment",
-        color_discrete_map=SEGMENT_COLORS,
-        hover_name="customer_id",
-        hover_data={
-            "recency": True,
-            "frequency": True,
-            "monetary": ":,.2f",
-            "segment": True,
-            z_col: False,
-        },
-        labels={
-            "recency": "Recency (Days)",
-            "frequency": "Frequency (Orders)",
-            z_col: z_title,
-            "segment": "Segment",
-        },
-        title="3D Customer Cluster Space",
-        opacity=0.85,
-    )
+    size_col = None
+    if size_by_clv and "predicted_clv_6m" in plot_df.columns:
+        plot_df["clv_marker_size"] = np.clip(np.sqrt(np.maximum(1.0, plot_df["predicted_clv_6m"])), 3, 20)
+        size_col = "clv_marker_size"
 
-    fig.update_traces(
-        marker=dict(size=5, line=dict(width=0.5, color="white")),
-    )
+    hover_dict = {
+        "recency": True,
+        "frequency": True,
+        "monetary": ":,.2f",
+        "segment": True,
+        z_col: False,
+    }
+    if "predicted_clv_6m" in plot_df.columns:
+        hover_dict["predicted_clv_6m"] = ":,.2f"
+    if "churn_probability" in plot_df.columns:
+        hover_dict["churn_probability"] = ":.1%"
+
+    if color_by_churn and "churn_probability" in plot_df.columns:
+        fig = px.scatter_3d(
+            plot_df,
+            x="recency",
+            y="frequency",
+            z=z_col,
+            color="churn_probability",
+            color_continuous_scale="RdYlGn_r",
+            size=size_col,
+            hover_name="customer_id",
+            hover_data=hover_dict,
+            labels={
+                "recency": "Recency (Days)",
+                "frequency": "Frequency (Orders)",
+                z_col: z_title,
+                "churn_probability": "Churn Risk",
+            },
+            title="3D Customer Space (Color: Churn Risk, Size: Predicted CLV)",
+            opacity=0.85,
+        )
+    else:
+        fig = px.scatter_3d(
+            plot_df,
+            x="recency",
+            y="frequency",
+            z=z_col,
+            color="segment",
+            color_discrete_map=SEGMENT_COLORS,
+            size=size_col,
+            hover_name="customer_id",
+            hover_data=hover_dict,
+            labels={
+                "recency": "Recency (Days)",
+                "frequency": "Frequency (Orders)",
+                z_col: z_title,
+                "segment": "Segment",
+            },
+            title="3D Customer Cluster Space",
+            opacity=0.85,
+        )
+
+    if size_col is None:
+        fig.update_traces(
+            marker=dict(size=5, line=dict(width=0.5, color="white")),
+        )
+    else:
+        fig.update_traces(
+            marker=dict(line=dict(width=0.5, color="white")),
+        )
 
     fig.update_layout(
         scene=dict(
