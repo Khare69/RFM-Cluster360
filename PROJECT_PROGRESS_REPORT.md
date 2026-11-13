@@ -3,14 +3,14 @@
 > **Project:** RFM Cluster360 — Enterprise Customer Segmentation & MLOps Platform  
 > **Repository:** [`github.com/Khare69/RFM-Cluster360`](https://github.com/Khare69/RFM-Cluster360)  
 > **Report Timestamp:** November 2026  
-> **Current Status:** Phases 0 through 16 Completed (117 Automated Tests, BG/NBD + Gamma-Gamma CLV, Hungarian Centroid Matching, Two-Pass Net Reconciliation, GDPR Unlearning)
+> **Current Status:** Phases 0 through 17 Completed (121 Automated Tests, BG/NBD + Gamma-Gamma CLV, Hungarian Centroid Matching, Two-Pass Net Reconciliation, GDPR Unlearning, Three-Tier Testing Pyramid)
 
 ---
 
 ## Table of Contents
 
 1. [Executive Summary & High-Level Milestones](#1-executive-summary--high-level-milestones)
-2. [Chronological Project Evolution (Phases 0–16 + Hardening)](#2-chronological-project-evolution-phases-016--hardening)
+2. [Chronological Project Evolution (Phases 0–17 + Hardening)](#2-chronological-project-evolution-phases-017--hardening)
 3. [Comprehensive Bug, Error & Vulnerability Catalog](#3-comprehensive-bug-error--vulnerability-catalog)
    - [3.1 Critical Runtime Crashes & Unhandled Exceptions](#31-critical-runtime-crashes--unhandled-exceptions)
    - [3.2 Silent Data Corruption & Ingestion Flaws](#32-silent-data-corruption--ingestion-flaws)
@@ -21,7 +21,7 @@
 5. [Architectural Pivots & Plan Evolution](#5-architectural-pivots--plan-evolution)
 6. [Automated Test Suite & Quality Assurance Growth](#6-automated-test-suite--quality-assurance-growth)
 7. [Git Commit Audit Trail](#7-git-commit-audit-trail)
-8. [Upcoming Roadmap & Next Phases (Phases 11–12)](#8-upcoming-roadmap--next-phases-phases-1112)
+8. [Upcoming Roadmap & Next Phases (Phase 18+)](#8-upcoming-roadmap--next-phases-phase-18)
 9. [Implementation Plan Archive & Historical Master Record](#9-implementation-plan-archive--historical-master-record)
 
 ---
@@ -56,7 +56,7 @@ Over the course of structured engineering iterations (**Phases 0 through 12 + De
 
 ---
 
-## 2. Chronological Project Evolution (Phases 0–10 + Hardening)
+## 2. Chronological Project Evolution (Phases 0–17 + Hardening)
 
 ### Phase 0 — Repository Bootstrap & Baseline Architecture
 - **Objective:** Establish version control, sanitize project structure, exclude virtual environments and cache directories, and publish to GitHub.
@@ -258,7 +258,7 @@ Over the course of structured engineering iterations (**Phases 0 through 12 + De
     - *Tier 2 (Bootstrap Stability)*: Asserts mean Adjusted Rand Index ($ARI \ge 0.80$) across 90% customer resamples.
     - *Tier 3 (CRM Schema)*: Validates integer constraints, currency precision, and holdout distribution.
   - **Test Growth:** Expanded automated test suite from 117 to **121 tests (100% pass rate)**.
-- **Git Commit:** Pending on `dev`.
+- **Git Commit:** `ef0f863` (*feat(ui): 3D WebGL CLV sizing, multi-index consensus UI, reverse-ETL, and testing pyramid (Phase 17)*)
 
 ---
 
@@ -728,30 +728,29 @@ The repository history reflects structured, semantic commits aligned with projec
 | `f59b653` | `feat(reconciler): two-pass net transaction reconciliation and GDPR machine unlearning (Phase 14)` | Phase 14 |
 | `0bdb319` | `feat(clustering): Hungarian centroid alignment, multi-index validity selector, and whale isolation (Phase 15)` | Phase 15 |
 | `294692f` | `feat(clv): probabilistic BG/NBD and Gamma-Gamma CLV modeling and reverse-ETL CRM export (Phase 16)` | Phase 16 |
+| `5347e3b` | `docs: record Phase 14-16 reconciliation, Hungarian alignment, and CLV engine (117 tests)` | Documentation |
+| `ef0f863` | `feat(ui): 3D WebGL CLV sizing, multi-index consensus UI, reverse-ETL, and testing pyramid (Phase 17)` | Phase 17 |
+| `8d76ac3` | `docs: update README with Hungarian alignment, CLV modeling, reconciler, and 121 tests` | Documentation |
 
 ---
 
-## 8. Upcoming Roadmap & Next Phases (Post-MVP)
+## 8. Upcoming Roadmap & Next Phases (Phase 18+)
 
-All twelve planned phases of the core engineering roadmap have been successfully implemented and verified:
+All seventeen planned phases of the core engineering and deep review audit roadmap have been successfully implemented, integrated, and verified:
 
 ```mermaid
 graph TD
-    P10["Phase 10: Analytical Correctness (Completed)"] --> HARDEN["Hardening Audit (Completed - 68 tests)"]
-    HARDEN --> P11["Phase 11: Architectural Decoupling & Pipeline Robustness (Completed - 75 tests)"]
-    P11 --> P12["Phase 12: Production Engineering & Validation (Completed - 84 tests)"]
-    P12 --> POSTMVP["Post-MVP Extended Roadmap (Churn, Sankey, BigQuery)"]
+    P13["Phase 13: Git Governance & Backtesting (98 tests)"] --> P14["Phase 14: Net Reconciliation & GDPR (105 tests)"]
+    P14 --> P15["Phase 15: Hungarian Alignment & Whale Isolation (112 tests)"]
+    P15 --> P16["Phase 16: Probabilistic BG/NBD + Gamma-Gamma CLV (117 tests)"]
+    P16 --> P17["Phase 17: Testing Pyramid & WebGL UI Integration (121 tests)"]
+    P17 --> P18["Phase 18: Production v1.4.0 Release & Final Tagging (In Progress)"]
 ```
 
-### Phase 11: Architectural Decoupling & Pipeline Robustness (Completed)
-- **Core Library Decoupling:** Removed all Streamlit UI imports (`streamlit`, `@st.cache_data`) from `src/`, migrating caching to `services/segmentation_service.py` to enable headless CLI and API execution.
-- **Unified scikit-learn Pipeline:** Bundled `FunctionTransformer(np.log1p)`, `StandardScaler()`, and `KMeans()` into a single `sklearn.pipeline.Pipeline` object to eliminate preprocessing drift.
-- **Explicit Model Promotion:** Replaced automatic background model saving with an intentional "Promote Model to Registry" button in the UI.
-
-### Phase 12: Production Engineering & Validation (Completed)
-- **CI Quality Gates:** Added `ruff` linting, `pyright` static type validation, and Docker container build verification to GitHub Actions.
-- **Analytical Baselines:** Implemented traditional quintile-based RFM scoring baseline alongside K-Means clusters and displayed the reference snapshot date on customer profiles.
-- **AppTest Smoke Suite:** Full automated headless Streamlit UI smoke testing verifying all 6 views under empty and populated session states.
+### Phase 18: Production Release v1.4.0 & Final Artifact Packaging (Active)
+- **Production Tagging:** Tag version `v1.4.0` on `main` branch reflecting staff-level architectural recommendations.
+- **Branch Synchronization:** Maintain complete synchronization across `main`, `dev`, and `debugging-and-error-correction`.
+- **System Documentation:** Full walkthrough and engineering verification documentation.
 
 ### 🌿 Git Branching Strategy & Workflow Model (3-Branch Architecture)
 The repository enforces a structured 3-branch separation model to guarantee production stability and release velocity:
@@ -773,7 +772,7 @@ The repository enforces a structured 3-branch separation model to guarantee prod
 - **Execution Methodology:** Test-driven development, modular component separation, semantic commits after every phase, zero regressions tolerance.
 - **Repository:** [`github.com/Khare69/RFM-Cluster360`](https://github.com/Khare69/RFM-Cluster360) (public).
 
-### 9.2 Master Phase-by-Phase Roadmap Matrix (Phases 0–12)
+### 9.2 Master Phase-by-Phase Roadmap Matrix (Phases 0–17)
 
 | Phase | Title | Primary Goal | Deliverables | Tests | Status |
 |:---:|---|---|---|:---:|:---:|
@@ -791,6 +790,11 @@ The repository enforces a structured 3-branch separation model to guarantee prod
 | **Audit** | **Quality & Edge Case Hardening** | Zero-defect production audit | `_SegmentColorsDict` bracket indexing, `Optional` typing import, end-to-end currency propagation across all 6 pages/charts | 68 | **Completed** |
 | **11** | **Architectural Decoupling** | Headless core analytics | Remove Streamlit imports from `src/`, unified `sklearn.pipeline.Pipeline` artifact, explicit "Promote Model" button | 75 | **Completed** |
 | **12** | **Production Engineering** | Production gates & baselines | `ruff` linting, `pyright` type checks, Docker build in CI, quintile RFM baselines, snapshot date UI, AppTest smoke suite | 84 | **Completed** |
+| **13** | **Git Governance & Backtesting** | 3-Branch model & Markov engine | Parallel CI gates, GHCR container deploy, PR/Issue governance, out-of-time temporal backtesting | 98 | **Completed** |
+| **14** | **Reconciliation & Governance** | Net accounting & GDPR unlearning | Two-pass net transaction reconciler, HMAC pseudonymization, $O(1)$ centroid erasure for GDPR Article 17 | 105 | **Completed** |
+| **15** | **Centroid Alignment & Validity** | Hungarian mapping & whale isolation | Hungarian centroid matcher, two-stage $P_{99.5}$ whale isolation, multi-index validity (Calinski-Harabasz, Davies-Bouldin) | 112 | **Completed** |
+| **16** | **Probabilistic CLV Engine** | BG/NBD + Gamma-Gamma | Analytical MLE BG/NBD fitting, empirical Bayes spend shrinkage on $f=0$, Reverse-ETL 10% holdout export | 117 | **Completed** |
+| **17** | **Testing Pyramid & UI Integration** | Quality verification & 3D WebGL | 3D WebGL CLV/churn scatter, multi-index consensus UI, data contracts, metamorphic monotonicity, bootstrap stability | 121 | **Completed** |
 
 ### 9.3 Standard Phase Completion Protocol
 
