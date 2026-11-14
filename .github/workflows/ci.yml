@@ -153,7 +153,7 @@ jobs:
           echo "Docker container built and verified successfully."
 
   publish:
-    name: CD: Publish Container to GHCR
+    name: "CD: Publish Container to GHCR"
     needs: [lint, typecheck, security, test, docker-build]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest

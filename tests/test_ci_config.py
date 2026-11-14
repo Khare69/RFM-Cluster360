@@ -14,6 +14,12 @@ def test_ci_workflow_structure():
 
     content = workflow_path.read_text(encoding="utf-8")
 
+    # Syntax validity
+    import yaml
+    parsed_yaml = yaml.safe_load(content)
+    assert parsed_yaml is not None, "Workflow YAML must be valid"
+    assert "jobs" in parsed_yaml, "Workflow must define jobs mapping"
+
     # Workflow triggers
     assert "push:" in content, "Workflow must trigger on push"
     assert "pull_request:" in content, "Workflow must trigger on pull_request"
