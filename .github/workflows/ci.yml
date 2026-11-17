@@ -24,10 +24,10 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Set up Python 3.11
+      - name: Set up Python 3.12
         uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: "3.12"
           cache: "pip"
 
       - name: Install Dependencies
@@ -47,10 +47,10 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Set up Python 3.11
+      - name: Set up Python 3.12
         uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: "3.12"
           cache: "pip"
 
       - name: Install Dependencies
@@ -70,10 +70,10 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Set up Python 3.11
+      - name: Set up Python 3.12
         uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: "3.12"
           cache: "pip"
 
       - name: Install Dependencies
@@ -93,10 +93,10 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Set up Python 3.11
+      - name: Set up Python 3.12
         uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: "3.12"
           cache: "pip"
 
       - name: Install Dependencies
@@ -113,7 +113,7 @@ jobs:
         run: |
           echo "### 🧪 Automated Test & Coverage Summary" >> $GITHUB_STEP_SUMMARY
           echo "- **Test Runner:** Pytest $(python -m pytest --version 2>&1 | head -n 1)" >> $GITHUB_STEP_SUMMARY
-          echo "- **Python Version:** 3.11" >> $GITHUB_STEP_SUMMARY
+          echo "- **Python Version:** 3.12" >> $GITHUB_STEP_SUMMARY
           echo "- **Status:** ${{ job.status == 'success' && '✅ All Tests Passed' || '❌ Test Suite Failed' }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Coverage Scope:** \`src/\`, \`components/\`, \`services/\`, \`viz/\`" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY

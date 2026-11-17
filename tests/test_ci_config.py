@@ -32,7 +32,7 @@ def test_ci_workflow_structure():
     assert "ubuntu-latest" in content, "Workflow runner must be ubuntu-latest"
     assert "actions/checkout" in content, "Workflow must checkout repository code"
     assert "actions/setup-python" in content, "Workflow must set up Python environment"
-    assert "3.11" in content, "Workflow must configure Python 3.11"
+    assert "3.12" in content, "Workflow must configure Python 3.12"
     assert "requirements.txt" in content, "Workflow must install production requirements"
     assert "requirements-dev.txt" in content, "Workflow must install development requirements"
     assert "ruff check" in content, "Workflow must execute ruff linter"
@@ -142,5 +142,3 @@ def test_developer_tooling_and_task_runners():
     ps_content = ps_runner_path.read_text(encoding="utf-8")
     for cmd in ["test", "lint", "typecheck", "run", "docker-build"]:
         assert cmd in ps_content, f"PowerShell runner must handle '{cmd}' command"
-
-
