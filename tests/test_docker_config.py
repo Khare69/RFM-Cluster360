@@ -2,6 +2,7 @@
 Unit tests validating Docker configuration, multi-stage Dockerfile syntax, and compose definitions.
 """
 
+import re
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -17,7 +18,18 @@ def test_dockerfile_structure():
     # Multi-stage build checks
     assert "AS builder" in content, "Dockerfile must define a builder stage"
     assert "AS runner" in content, "Dockerfile must define a runner stage"
-    assert "python:3.11-slim" in content, "Dockerfile must use lightweight python:3.11-slim base"
+
+    base_images = re.findall(r"FROM\s+python:(\d+)\.(\d+)-slim\b", content)
+    assert len(base_images) >= 2, (
+        "Dockerfile must use lightweight python:<major>.<minor>-slim base in builder and runner stages"
+    )
+    assert len(set(base_images)) == 1, (
+        f"Dockerfile stages must use the same Python slim base version, found: {base_images}"
+    )
+    major, minor = (int(base_images[0][0]), int(base_images[0][1]))
+    assert (major, minor) >= (3, 12), (
+        f"Dockerfile Python base {major}.{minor} must be >= 3.12 for numpy>=2.5.4 compatibility"
+    )
 
     # Security & Port checks
     assert "EXPOSE 8501" in content, "Dockerfile must expose port 8501"

@@ -1,7 +1,7 @@
 # 🎯 RFM Cluster360 — Customer Intelligence & Behavioral Segmentation
 
 [![CI](https://github.com/Khare69/RFM-Cluster360/actions/workflows/ci.yml/badge.svg)](https://github.com/Khare69/RFM-Cluster360/actions/workflows/ci.yml)
-[![Python](https://img.shields.io/badge/Python-3.11+-blue.svg)](https://www.python.org/)
+[![Python](https://img.shields.io/badge/Python-3.12+-blue.svg)](https://www.python.org/)
 [![Streamlit](https://img.shields.io/badge/Streamlit-1.28+-FF4B4B.svg)](https://streamlit.io/)
 [![scikit-learn](https://img.shields.io/badge/scikit--learn-1.3+-F7931E.svg)](https://scikit-learn.org/)
 [![Plotly](https://img.shields.io/badge/Plotly-5.17+-3F4F75.svg)](https://plotly.com/)
@@ -9,7 +9,7 @@
 [![Apache Parquet](https://img.shields.io/badge/Format-Apache%20Parquet-teal.svg)](https://parquet.apache.org/)
 [![Docker](https://img.shields.io/badge/Docker-Containerized-2496ED.svg?logo=docker&logoColor=white)](Dockerfile)
 [![MLOps](https://img.shields.io/badge/MLOps-Model%20Registry-blueviolet.svg)](#-mlops-model-artifact-registry)
-[![Tests](https://img.shields.io/badge/Tests-121%20Passed-brightgreen.svg)](#-running-the-test-suite)
+[![Tests](https://img.shields.io/badge/Tests-122%20Passed-brightgreen.svg)](#-running-the-test-suite)
 [![Report](https://img.shields.io/badge/Report-Project%20Progress%20%26%20Bugs-informational.svg)](PROJECT_PROGRESS_REPORT.md)
 [![License](https://img.shields.io/badge/License-Apache_2.0-green.svg)](LICENSE)
 
@@ -84,7 +84,7 @@ An enterprise-ready customer intelligence and segmentation platform that transfo
     - Upload directly to AWS S3 buckets or local mock storage from the export interface.
 
 11. **Production Docker Containerization & Health Checks**
-    - **Multi-Stage Build:** Stage 1 virtualenv builder isolates pip compilation overhead; Stage 2 runtime image uses slim `python:3.11-slim` footprint (~180MB).
+    - **Multi-Stage Build:** Stage 1 virtualenv builder isolates pip compilation overhead; Stage 2 runtime image uses slim `python:3.12-slim` footprint (~180MB).
     - **Automated Health Check:** `HEALTHCHECK` continually inspects Streamlit's native `/_stcore/health` endpoint.
     - **Principle of Least Privilege:** Executes under an unprivileged `appuser` (UID 1000) non-root user.
     - **Docker Compose:** One-command local spinup (`docker compose up --build`) with volume persistence for `/app/data` and environment fallbacks.
@@ -188,7 +188,7 @@ flowchart TD
         Presentation --> AppServe["Streamlit Multi-Page App (:8501)"]
         HotSwap --> AppServe
         LiveInfer --> AppServe
-        AppServe --> MultiStage["Multi-Stage Docker Image (python:3.11-slim)"]
+        AppServe --> MultiStage["Multi-Stage Docker Image (python:3.12-slim)"]
         MultiStage --> SecureRun["Least-Privilege Non-Root Execution (UID 1000)"]
         SecureRun --> AutoHealth["Continuous HEALTHCHECK (/_stcore/health)"]
         SecureRun --> ComposeUp["Docker Compose Orchestration & Volume Mounts"]
@@ -556,7 +556,7 @@ The containerized dashboard is accessible at `http://localhost:8501`.
 
 ### 🛡️ Container Architecture & Security Highlights
 
-- **Multi-Stage Build Pattern:** The builder stage creates an isolated virtual environment (`/opt/venv`), separating build-time dependencies (`build-essential`) from the lightweight final runtime image (`python:3.11-slim`), reducing image size by over 75%.
+- **Multi-Stage Build Pattern:** The builder stage creates an isolated virtual environment (`/opt/venv`), separating build-time dependencies (`build-essential`) from the lightweight final runtime image (`python:3.12-slim`), reducing image size by over 75%.
 - **Unprivileged Non-Root User:** Runs under a dedicated `appuser` system account (UID 1000) adhering to container security best practices and least-privilege principles.
 - **Automated Health Check:** Monitored via `HEALTHCHECK` querying Streamlit's internal health endpoint:
   ```bash

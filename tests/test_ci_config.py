@@ -2,6 +2,7 @@
 Unit tests validating GitHub Actions CI/CD workflow configuration and requirements split.
 """
 
+import re
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -32,7 +33,7 @@ def test_ci_workflow_structure():
     assert "ubuntu-latest" in content, "Workflow runner must be ubuntu-latest"
     assert "actions/checkout" in content, "Workflow must checkout repository code"
     assert "actions/setup-python" in content, "Workflow must set up Python environment"
-    assert "3.11" in content, "Workflow must configure Python 3.11"
+    assert "3.12" in content, "Workflow must configure Python 3.12"
     assert "requirements.txt" in content, "Workflow must install production requirements"
     assert "requirements-dev.txt" in content, "Workflow must install development requirements"
     assert "ruff check" in content, "Workflow must execute ruff linter"
@@ -114,8 +115,36 @@ def test_repository_governance_and_templates():
     # Dependabot checks
     assert dependabot_path.exists(), "dependabot.yml must exist in .github/"
     dep_content = dependabot_path.read_text(encoding="utf-8")
+    import yaml
+    parsed_dep = yaml.safe_load(dep_content)
+    assert parsed_dep is not None and "updates" in parsed_dep, "dependabot.yml must be valid YAML with updates"
     assert 'package-ecosystem: "pip"' in dep_content, "Dependabot must monitor pip dependencies"
     assert 'package-ecosystem: "github-actions"' in dep_content, "Dependabot must monitor GitHub Actions"
+
+
+def test_python_version_consistency_across_configs():
+    """Ensure CI workflow, Dockerfile stages, and Ruff target-version stay synchronized."""
+    import yaml
+
+    workflow_data = yaml.safe_load((REPO_ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8"))
+    ci_version = str(workflow_data.get("env", {}).get("PYTHON_VERSION", "")).strip()
+    assert re.fullmatch(r"\d+\.\d+", ci_version), (
+        f"ci.yml must define a workflow-level env.PYTHON_VERSION (e.g., '3.12'), got: {ci_version!r}"
+    )
+
+    dockerfile_content = (REPO_ROOT / "Dockerfile").read_text(encoding="utf-8")
+    docker_versions = set(re.findall(r"FROM\s+python:(\d+\.\d+)-slim\b", dockerfile_content))
+    assert docker_versions == {ci_version}, (
+        f"Dockerfile Python versions {docker_versions} must match ci.yml PYTHON_VERSION ({ci_version})"
+    )
+
+    ruff_content = (REPO_ROOT / "ruff.toml").read_text(encoding="utf-8")
+    ruff_match = re.search(r'target-version\s*=\s*"py(\d)(\d+)"', ruff_content)
+    assert ruff_match is not None, "ruff.toml must define target-version"
+    ruff_version = f"{ruff_match.group(1)}.{ruff_match.group(2)}"
+    assert ruff_version == ci_version, (
+        f"ruff.toml target-version ({ruff_version}) must match ci.yml PYTHON_VERSION ({ci_version})"
+    )
 
 
 def test_developer_tooling_and_task_runners():
@@ -142,5 +171,3 @@ def test_developer_tooling_and_task_runners():
     ps_content = ps_runner_path.read_text(encoding="utf-8")
     for cmd in ["test", "lint", "typecheck", "run", "docker-build"]:
         assert cmd in ps_content, f"PowerShell runner must handle '{cmd}' command"
-
-
